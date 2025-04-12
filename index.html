@@ -1,10 +1,10 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Reach Token Portal</title>
+  <!-- Thirdweb SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@thirdweb-dev/sdk/dist/browser.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@thirdweb-dev/wallets@latest/dist/thirdweb-wallets.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
@@ -45,17 +45,30 @@
   <div id="wallet-output"></div>
   <div id="balance-output"></div>
   <button id="buy-button" style="display:none;">Buy Reach Token</button>
+  <div id="error-message" style="display:none; color: red; text-align: center;">
+    An error occurred while loading the page. Please check the console for details.
+  </div>
+  <noscript>
+    <p style="color: red; text-align: center;">
+      JavaScript is required to run this page. Please enable JavaScript in your browser.
+    </p>
+  </noscript>
 
   <script>
+    console.log("Starting page load...");
+
     let signer, sdk, contract, address;
+    let retryCount = 0;
+    const maxRetries = 10;
 
     async function load() {
       if (window.thirdwebWallets && window.thirdwebWallets.ConnectWallet) {
         console.log("Thirdweb SDK loaded.");
         const { ConnectWallet } = window.thirdwebWallets;
 
+        // Create Connect Button
         const connectButton = ConnectWallet({
-          clientId: "f2bdf5e0c3191caec35b87c25429712a",
+          clientId: "f2bdf5e0c3191caec35b87c25429712a", // Replace with your actual client ID
           theme: "dark",
           modalSize: "wide",
           onConnect: async (wallet) => {
@@ -65,21 +78,28 @@
               document.getElementById("wallet-output").innerText = "✅ Connected: " + address;
 
               sdk = new thirdweb.ThirdwebSDK(signer);
-              contract = await sdk.getContract("0x41A61CdCf40a074546423Bae987B81733F3FBAc5", "token");
+              contract = await sdk.getContract("0x41A61CdCf40a074546423Bae987B81733F3FBAc5", "token"); // Replace with your contract address
 
               const balance = await contract.erc20.balanceOf(address);
               document.getElementById("balance-output").innerText = "🔹 Balance: " + balance.displayValue + " 9D-RC";
 
+              // Show buy button
               document.getElementById("buy-button").style.display = "inline-block";
             } catch (err) {
               console.error("Connect error:", err);
-              alert("Failed to connect wallet. See console.");
+              alert("Failed to connect wallet. See console for details.");
             }
           }
         });
 
         document.getElementById("wallet-connect").appendChild(connectButton);
       } else {
+        retryCount++;
+        if (retryCount >= maxRetries) {
+          console.error("Failed to load Thirdweb SDK after multiple retries.");
+          document.getElementById("error-message").style.display = "block";
+          return;
+        }
         console.warn("Thirdweb SDK not yet available. Retrying...");
         setTimeout(load, 500);
       }
@@ -87,25 +107,39 @@
 
     document.addEventListener("DOMContentLoaded", load);
 
-    document.getElementById("buy-button").addEventListener("click", async () => {
-      try {
-        const ethAmount = prompt("Enter ETH to spend (e.g. 0.01):");
-        if (!ethAmount || isNaN(ethAmount)) return;
+    // Buy Button Click Event
+    document.addEventListener("click", async (event) => {
+      if (event.target.id === "buy-button") {
+        try {
+          const ethAmount = prompt("Enter ETH to spend (e.g., 0.01):");
+          if (!ethAmount || isNaN(ethAmount) || parseFloat(ethAmount) <= 0) {
+            alert("Invalid ETH amount. Please enter a positive number.");
+            return;
+          }
 
-        const tx = await contract.call("buyTokens", [0], {
-          value: ethers.utils.parseEther(ethAmount)
-        });
+          const tx = await contract.call("buyTokens", [0], {
+            value: ethers.utils.parseEther(ethAmount),
+          });
 
-        await tx.wait();
-        alert("✅ Tokens purchased!");
+          await tx.wait();
+          alert("✅ Tokens purchased!");
 
-        const balance = await contract.erc20.balanceOf(address);
-        document.getElementById("balance-output").innerText = "🔹 Balance: " + balance.displayValue + " 9D-RC";
-      } catch (err) {
-        console.error("Buy error:", err);
-        alert("❌ Purchase failed. See console.");
+          // Update balance after purchase
+          const balance = await contract.erc20.balanceOf(address);
+          document.getElementById("balance-output").innerText =
+            "🔹 Balance: " + balance.displayValue + " 9D-RC";
+        } catch (err) {
+          console.error("Buy error:", err);
+          alert("❌ Purchase failed. See console for details.");
+        }
       }
     });
+
+    // Global Error Handling
+    window.onerror = function (message, source, lineno, colno, error) {
+      console.error("Error occurred:", { message, source, lineno, colno, error });
+      document.getElementById("error-message").style.display = "block";
+    };
   </script>
 </body>
 </html>
