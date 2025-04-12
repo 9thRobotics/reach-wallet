@@ -1,1 +1,100 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Connect Wallet - Reach Token</title>
+  <script src="https://cdn.jsdelivr.net/npm/@thirdweb-dev/sdk/dist/browser.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@thirdweb-dev/wallets@latest/dist/thirdweb-wallets.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <style>
+    body {
+      background-color: #0d0d0d;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 50px 20px;
+    }
+    h1 {
+      font-size: 2em;
+    }
+    #wallet-output, #balance-output {
+      margin-top: 20px;
+      font-size: 1.1em;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #1c90f3;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>Reach Token Connect Portal</h1>
+  <div id="wallet-connect"></div>
+  <div id="wallet-output"></div>
+  <div id="balance-output"></div>
+  <button id="buy-button" style="display:none;">Buy Reach Token</button>
+
+  <script>
+    let signer, sdk, contract, address;
+
+    async function load() {
+      if (window.thirdwebWallets && window.thirdwebWallets.ConnectWallet) {
+        const { ConnectWallet } = window.thirdwebWallets;
+
+        const connectButton = ConnectWallet({
+          clientId: "f2bdf5e0c3191caec35b87c25429712a",
+          theme: "dark",
+          modalSize: "wide",
+          onConnect: async (wallet) => {
+            signer = await wallet.getSigner();
+            address = await signer.getAddress();
+            document.getElementById("wallet-output").innerText = "✅ Connected: " + address;
+
+            sdk = new thirdweb.ThirdwebSDK(signer);
+            contract = await sdk.getContract("0x41A61CdCf40a074546423Bae987B81733F3FBAc5", "token");
+
+            const balance = await contract.erc20.balanceOf(address);
+            document.getElementById("balance-output").innerText = "🔹 Your Balance: " + balance.displayValue + " 9D-RC";
+
+            document.getElementById("buy-button").style.display = "inline-block";
+          }
+        });
+
+        document.getElementById("wallet-connect").appendChild(connectButton);
+      } else {
+        setTimeout(load, 300);
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", load);
+
+    document.getElementById("buy-button").addEventListener("click", async () => {
+      try {
+        const ethAmount = prompt("Enter ETH amount to spend (e.g. 0.01):");
+        if (!ethAmount || isNaN(ethAmount)) return;
+
+        const tx = await contract.call("buyTokens", [0], {
+          value: ethers.utils.parseEther(ethAmount)
+        });
+
+        await tx.wait();
+        alert("✅ Token purchase successful!");
+
+        const balance = await contract.erc20.balanceOf(address);
+        document.getElementById("balance-output").innerText = "🔹 Your Balance: " + balance.displayValue + " 9D-RC";
+      } catch (err) {
+        console.error("❌ Purchase failed:", err);
+        alert("❌ Token purchase failed. See console.");
+      }
+    });
+  </script>
+</body>
+</html>
