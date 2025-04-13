@@ -68,7 +68,51 @@
   <button onclick="buyTokens()" id="buyButton" style="display:none;">🪙 Buy Reach Tokens</button>
   <div id="status">Wallet not connected.</div>
   <div id="estimator"></div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wallet Connect</title>
+</head>
+<body>
+  <div id="wallet-buttons"></div>
 
+  <script>
+    // Array of wallet identifiers
+    const wallets = [
+      { name: "MetaMask", id: "io.metamask" },
+      { name: "Coinbase Wallet", id: "com.coinbase.wallet" },
+      { name: "Trust Wallet", id: "com.trustwallet.app" },
+      { name: "Binance Wallet", id: "com.binance.wallet" },
+      { name: "Uniswap", id: "org.uniswap" },
+      { name: "Crypto.com", id: "com.crypto.wallet" },
+      { name: "Kraken", id: "com.kraken" },
+      { name: "SafeMoon", id: "com.safemoon" }
+    ];
+
+    // Function to create wallet buttons
+    function createWalletButtons(wallets) {
+      const container = document.getElementById('wallet-buttons');
+      wallets.forEach(wallet => {
+        const button = document.createElement('button');
+        button.textContent = `Connect ${wallet.name}`;
+        button.onclick = () => connectWallet(wallet.id);
+        container.appendChild(button);
+      });
+    }
+
+    // Function to handle wallet connection
+    function connectWallet(walletId) {
+      console.log(`Connecting to wallet: ${walletId}`);
+      // Add your wallet connection logic here
+    }
+
+    // Create wallet buttons on page load
+    createWalletButtons(wallets);
+  </script>
+</body>
+</html>
   <script>
     let provider, web3Provider, signer, selectedAccount;
 
