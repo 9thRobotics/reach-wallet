@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Reach Token Modal Buy</title>
-<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-<style>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>Reach Token Modal Buy</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <style>
     body {
       background: #111;
       color: white;
@@ -39,44 +39,48 @@
     .popup-info {
       margin-top: 20px;
     }
+    .buy-popup {
+      display: none;
+      background: #333;
+      padding: 30px;
+      border-radius: 10px;
+      max-width: 400px;
+      margin: 20px auto;
+    }
   </style>
 </head>
 <body>
-<h1>Reach Token Portal</h1>
-<button onclick="connectMetaMask()">🦊 Connect MetaMask</button>
-<button onclick="connectTrustWallet()">🔷 Connect Trust Wallet</button>
-<button onclick="disconnectWallet()">❌ Disconnect</button>
-<div style="margin-top:30px;">
-<label for="manualWallet">Optional Wallet Address (paste here to override connected wallet):</label><br/>
-<input id="manualWallet" placeholder="0x..." style="margin-top: 10px; width: 300px; text-align:center;" type="text"/>
-</div>
-<br/>
-<div style="background:#222; padding:20px; margin-top:30px; border-radius:10px;">
-<div>
-</div>
-<div class="popup-info">
-<div>Token Amount: <span id="tokenQty">0.00</span> 9D-RC</div>
-<div>Price per Token: <span id="pricePerToken">27 USD</span></div>
-<div>Subtotal in ETH: <span id="ethSubtotal">0.000000 ETH</span></div>
-<div>Fee (0.75%): <span id="fee">0.000000 ETH</span></div>
-<div><strong>Total ETH:</strong> <span id="totalEth">0.000000 ETH</span></div>
-</div>
-<br/>
-</div>
-</div>
-<div class="popup-info">
-<div>Token Amount: <span id="tokenQty">0</span> 9D-RC</div>
-<div>Price per Token: <span id="pricePerToken">27 USD</span></div>
-<div>Subtotal in ETH: <span id="ethSubtotal">0</span></div>
-<div>Fee (0.75%): <span id="fee">0</span></div>
-<div><strong>Total ETH:</strong> <span id="totalEth">0</span></div>
-</div>
-<br/>
-<button onclick="buyTokens()">✅ Confirm Purchase</button>
-<button onclick="closePopup()">❌ Cancel</button>
-
-<div id="status" style="margin-top: 20px;"></div>
-<script>
+  <h1>Reach Token Portal</h1>
+  <button onclick="connectMetaMask()">🦊 Connect MetaMask</button>
+  <button onclick="connectTrustWallet()">🔷 Connect Trust Wallet</button>
+  <button onclick="disconnectWallet()">❌ Disconnect</button>
+  <div style="margin-top: 30px;">
+    <label for="manualWallet">Optional Wallet Address (paste here to override connected wallet):</label><br />
+    <input id="manualWallet" placeholder="0x..." style="margin-top: 10px; width: 300px; text-align:center;" type="text" />
+  </div>
+  <br />
+  <div style="background:#222; padding:20px; margin-top:30px; border-radius:10px;">
+    <div class="popup-info">
+      <div>Token Amount: <span id="tokenQty">0.00</span> 9D-RC</div>
+      <div>Price per Token: <span id="pricePerToken">27 USD</span></div>
+      <div>Subtotal in ETH: <span id="ethSubtotal">0.000000 ETH</span></div>
+      <div>Fee (0.75%): <span id="fee">0.000000 ETH</span></div>
+      <div><strong>Total ETH:</strong> <span id="totalEth">0.000000 ETH</span></div>
+    </div>
+    <input id="tokenAmount" placeholder="Enter token amount" oninput="updateTotals()" />
+    <br /><br />
+    <button onclick="showBuyPopup()">✅ Confirm Purchase</button>
+  </div>
+  <div id="buyPopup" class="buy-popup">
+    <div>
+      <h2>Confirm Purchase</h2>
+      <p>Are you sure you want to buy <span id="tokenQtyPopup">0</span> tokens?</p>
+      <button onclick="buyTokens()">✅ Confirm</button>
+      <button onclick="closePopup()">❌ Cancel</button>
+    </div>
+  </div>
+  <div id="status" style="margin-top: 20px;"></div>
+  <script>
     let provider, web3Provider, signer, selectedAccount;
     const tokenUsd = 27;
     const ethUsd = 1867.64;
@@ -90,9 +94,11 @@
           web3Provider = new ethers.providers.Web3Provider(provider);
           signer = web3Provider.getSigner();
           selectedAccount = await signer.getAddress();
-          document.getElementById("status").innerText = "✅ Connected with MetaMask: " + selectedAccount;
+          document.getElementById("status").innerText =
+            "✅ Connected with MetaMask: " + selectedAccount;
         } catch (e) {
-          document.getElementById("status").innerText = "❌ Failed to connect MetaMask.";
+          document.getElementById("status").innerText =
+            "❌ Failed to connect MetaMask.";
         }
       } else {
         alert("MetaMask not detected.");
@@ -107,9 +113,11 @@
           web3Provider = new ethers.providers.Web3Provider(provider);
           signer = web3Provider.getSigner();
           selectedAccount = await signer.getAddress();
-          document.getElementById("status").innerText = "✅ Connected with Trust Wallet: " + selectedAccount;
+          document.getElementById("status").innerText =
+            "✅ Connected with Trust Wallet: " + selectedAccount;
         } catch (e) {
-          document.getElementById("status").innerText = "❌ Failed to connect Trust Wallet.";
+          document.getElementById("status").innerText =
+            "❌ Failed to connect Trust Wallet.";
         }
       } else {
         alert("Trust Wallet not detected.");
@@ -126,6 +134,8 @@
 
     function showBuyPopup() {
       document.getElementById("buyPopup").style.display = "block";
+      document.getElementById("tokenQtyPopup").innerText =
+        document.getElementById("tokenQty").innerText;
     }
 
     function closePopup() {
@@ -133,34 +143,40 @@
     }
 
     function updateTotals() {
-      const amount = parseFloat(document.getElementById("tokenAmount").value) || 0;
+      const amount = parseFloat(
+        document.getElementById("tokenAmount").value
+      ) || 0;
       const subtotal = amount * tokenUsd;
       const ethSubtotal = subtotal / ethUsd;
       const fee = ethSubtotal * feeRate;
       const total = ethSubtotal + fee;
 
       document.getElementById("tokenQty").innerText = amount.toFixed(2);
-      document.getElementById("ethSubtotal").innerText = ethSubtotal.toFixed(6) + " ETH";
+      document.getElementById("ethSubtotal").innerText =
+        ethSubtotal.toFixed(6) + " ETH";
       document.getElementById("fee").innerText = fee.toFixed(6) + " ETH";
-      document.getElementById("totalEth").innerText = total.toFixed(6) + " ETH";
+      document.getElementById("totalEth").innerText =
+        total.toFixed(6) + " ETH";
     }
 
     async function buyTokens() {
-      const amount = parseFloat(document.getElementById("tokenAmount").value) || 0;
+      const amount = parseFloat(
+        document.getElementById("tokenAmount").value
+      ) || 0;
       const usdTotal = amount * tokenUsd;
       const totalEth = (usdTotal / ethUsd) * (1 + feeRate);
 
       try {
-        
-    const overrideWallet = document.getElementById("manualWallet").value.trim();
-    const fromAddress = overrideWallet !== "" ? overrideWallet : selectedAccount;
+        const overrideWallet = document
+          .getElementById("manualWallet")
+          .value.trim();
+        const fromAddress =
+          overrideWallet !== "" ? overrideWallet : selectedAccount;
 
-    const tx = await signer.sendTransaction({
-      to: "0x41A61CdCf40a074546423Bae987B81733F3FBAc5",
-      from: fromAddress,
-  
+        const tx = await signer.sendTransaction({
           to: "0x41A61CdCf40a074546423Bae987B81733F3FBAc5",
-          value: ethers.utils.parseEther(totalEth.toFixed(6))
+          from: fromAddress,
+          value: ethers.utils.parseEther(totalEth.toFixed(6)),
         });
 
         document.getElementById("status").innerText = `✅ TX sent: ${tx.hash}`;
