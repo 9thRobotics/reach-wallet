@@ -1,1 +1,177 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Reach Token Wallet Select</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <script src="https://unpkg.com/web3modal@1.9.12/dist/index.js"></script>
+  <script src="https://unpkg.com/@walletconnect/web3-provider@1.7.8/dist/umd/index.min.js"></script>
+  <script src="https://unpkg.com/@coinbase/wallet-sdk@3.11.0/dist/umd/wallet-sdk.min.js"></script>
+  <style>
+    body {
+      background: #111;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 40px;
+    }
+    button.wallet-btn {
+      padding: 12px 20px;
+      font-size: 16px;
+      margin: 10px;
+      background-color: #1c90f3;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .wallet-btn img {
+      height: 24px;
+      vertical-align: middle;
+    }
+    input {
+      padding: 10px;
+      font-size: 16px;
+      margin-top: 10px;
+      width: 200px;
+      text-align: center;
+    }
+    #status, #estimator, #calc-output {
+      margin-top: 20px;
+      font-size: 1em;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔗 Reach Token Purchase Portal</h1>
+  <button class="wallet-btn" onclick="connectInjected()">
+    <img src="https://raw.githubusercontent.com/MetaMask/brand-resources/master/SVG/metamask-fox.svg" alt="MetaMask" />
+    Connect MetaMask
+  </button>
+  <button class="wallet-btn" onclick="connectWalletConnect()">
+    <img src="https://trustwallet.com/assets/images/media/assets/TWT.svg" alt="TrustWallet" />
+    Connect Trust Wallet
+  </button>
+  <button onclick="disconnectWallet()" id="disconnectButton" style="display:none;">❌ Disconnect</button>
+
+  <br/>
+  <input type="number" id="tokenAmount" placeholder="How many Reach tokens?" />
+  <div id="calc-output"></div>
+  <button onclick="buyTokens()" id="buyButton" style="display:none;">🪙 Buy Reach Tokens</button>
+  <div id="status">Wallet not connected.</div>
+  <div id="estimator"></div>
+
+  <script>
+    let provider, web3Provider, signer, selectedAccount;
+
+    const providerOptions = {
+      walletconnect: {
+        package: window.WalletConnectProvider.default,
+        options: {
+          infuraId: "63f289c3783f403aa722e9bda1b680aa"
+        }
+      },
+      coinbasewallet: {
+        package: window.CoinbaseWalletSDK,
+        options: {
+          appName: "ReachToken Portal",
+          infuraId: "63f289c3783f403aa722e9bda1b680aa"
+        }
+      },
+      injected: {
+        package: null
+      }
+    };
+
+    async function connectInjected() {
+      const modal = new window.Web3Modal.default({ providerOptions });
+      provider = await modal.connectTo("injected");
+      await onWalletConnected();
+    }
+
+    async function connectWalletConnect() {
+      const modal = new window.Web3Modal.default({ providerOptions });
+      provider = await modal.connectTo("walletconnect");
+      await onWalletConnected();
+    }
+
+    async function onWalletConnected() {
+      try {
+        web3Provider = new ethers.providers.Web3Provider(provider);
+        signer = web3Provider.getSigner();
+        selectedAccount = await signer.getAddress();
+        document.getElementById("status").innerText = "✅ Connected: " + selectedAccount;
+        document.getElementById("buyButton").style.display = "inline-block";
+        document.getElementById("disconnectButton").style.display = "inline-block";
+      } catch (e) {
+        console.error("Connection error:", e);
+        document.getElementById("status").innerText = "❌ Failed to connect.";
+      }
+    }
+
+    function disconnectWallet() {
+      if (provider && provider.disconnect) {
+        provider.disconnect();
+      }
+      provider = null;
+      web3Provider = null;
+      signer = null;
+      selectedAccount = null;
+      document.getElementById("status").innerText = "🔌 Wallet disconnected.";
+      document.getElementById("buyButton").style.display = "none";
+      document.getElementById("disconnectButton").style.display = "none";
+      document.getElementById("calc-output").innerText = "";
+    }
+
+    document.getElementById("tokenAmount").addEventListener("input", function() {
+      const tokenPriceUSD = 27;
+      const ethToUsdRate = 3000;
+      const tokenCount = parseFloat(this.value);
+      if (!isNaN(tokenCount) && tokenCount > 0) {
+        const totalUSD = tokenCount * tokenPriceUSD;
+        const totalETH = totalUSD / ethToUsdRate;
+        document.getElementById("calc-output").innerHTML = `
+          💵 USD Total: <strong>$${totalUSD.toFixed(2)}</strong><br/>
+          Ξ ETH Required: <strong>${totalETH.toFixed(6)}</strong>
+        `;
+      } else {
+        document.getElementById("calc-output").innerText = "";
+      }
+    });
+
+    async function buyTokens() {
+      try {
+        const tokenPriceUSD = 27;
+        const ethToUsdRate = 3000;
+        const tokenCount = parseFloat(document.getElementById("tokenAmount").value);
+        if (!tokenCount || isNaN(tokenCount) || tokenCount <= 0) {
+          alert("Enter a valid token amount.");
+          return;
+        }
+
+        const totalUSD = tokenCount * tokenPriceUSD;
+        const totalETH = (totalUSD / ethToUsdRate).toFixed(6);
+
+        const tx = await signer.sendTransaction({
+          to: "0x41A61CdCf40a074546423Bae987B81733F3FBAc5",
+          value: ethers.utils.parseEther(totalETH)
+        });
+
+        document.getElementById("status").innerText = `⏳ Transaction sent: ${tx.hash}`;
+        document.getElementById("estimator").innerText = `💸 Paid ${totalETH} ETH for ${tokenCount} Reach tokens`;
+        await tx.wait();
+        document.getElementById("status").innerText = `✅ Purchase confirmed!`;
+      } catch (err) {
+        console.error("Buy error:", err);
+        alert("❌ Purchase failed. See console for details.");
+      }
+    }
+  </script>
+</body>
+</html>
