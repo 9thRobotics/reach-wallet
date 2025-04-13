@@ -1,1 +1,125 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Reach Token Portal</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <script src="https://unpkg.com/web3modal@1.9.12/dist/index.js"></script>
+  <script src="https://unpkg.com/@walletconnect/web3-provider@1.7.8/dist/umd/index.min.js"></script>
+  <script src="https://unpkg.com/@coinbase/wallet-sdk@3.11.0/dist/umd/wallet-sdk.min.js"></script>
+  <style>
+    body {
+      background: #111;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 40px;
+    }
+    button {
+      padding: 12px 20px;
+      font-size: 16px;
+      margin: 10px;
+      background-color: #1c90f3;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #status, #estimator {
+      margin-top: 20px;
+      font-size: 1em;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔗 Reach Token Buy Portal</h1>
+  <button onclick="connectWallet()">🔌 Connect Wallet</button>
+  <button onclick="disconnectWallet()" id="disconnectButton" style="display:none;">❌ Disconnect</button>
+  <br/>
+  <button onclick="buyTokens()" id="buyButton" style="display:none;">🪙 Buy Reach Tokens</button>
+  <div id="status">Wallet not connected.</div>
+  <div id="estimator"></div>
+
+  <script>
+    let provider, web3Provider, signer, selectedAccount;
+
+    const providerOptions = {
+      walletconnect: {
+        package: window.WalletConnectProvider.default,
+        options: {
+          infuraId: "63f289c3783f403aa722e9bda1b680aa"
+        }
+      },
+      coinbasewallet: {
+        package: window.CoinbaseWalletSDK,
+        options: {
+          appName: "ReachToken Portal",
+          infuraId: "63f289c3783f403aa722e9bda1b680aa"
+        }
+      }
+    };
+
+    const web3Modal = new window.Web3Modal.default({
+      cacheProvider: false,
+      providerOptions
+    });
+
+    async function connectWallet() {
+      try {
+        provider = await web3Modal.connect();
+        web3Provider = new ethers.providers.Web3Provider(provider);
+        signer = web3Provider.getSigner();
+        selectedAccount = await signer.getAddress();
+        document.getElementById("status").innerText = "✅ Connected: " + selectedAccount;
+        document.getElementById("buyButton").style.display = "inline-block";
+        document.getElementById("disconnectButton").style.display = "inline-block";
+      } catch (e) {
+        console.error("Connection error:", e);
+        document.getElementById("status").innerText = "❌ Failed to connect.";
+      }
+    }
+
+    function disconnectWallet() {
+      if (provider && provider.disconnect) {
+        provider.disconnect();
+      }
+      web3Modal.clearCachedProvider();
+      provider = null;
+      web3Provider = null;
+      signer = null;
+      selectedAccount = null;
+      document.getElementById("status").innerText = "🔌 Wallet disconnected.";
+      document.getElementById("buyButton").style.display = "none";
+      document.getElementById("disconnectButton").style.display = "none";
+    }
+
+    async function buyTokens() {
+      try {
+        const tokenPrice = 27; // USD per Reach Token
+        const ethToUsd = 3000; // Example rate, you could fetch live value
+        const reachPerEth = ethToUsd / tokenPrice;
+        const input = prompt(`How many Reach Tokens do you want to buy? Price = $27 per token`);
+        if (!input || isNaN(input) || input <= 0) return alert("❌ Invalid input.");
+
+        const tokensToBuy = parseFloat(input);
+        const estimatedEth = (tokensToBuy / reachPerEth).toFixed(6);
+
+        const tx = await signer.sendTransaction({
+          to: "0x41A61CdCf40a074546423Bae987B81733F3FBAc5",
+          value: ethers.utils.parseEther(estimatedEth)
+        });
+
+        document.getElementById("status").innerText = `⏳ Transaction sent: ${tx.hash}`;
+        document.getElementById("estimator").innerText = `💸 You paid ~${estimatedEth} ETH for ${tokensToBuy} Reach`;
+        await tx.wait();
+        document.getElementById("status").innerText = `✅ Purchase confirmed!`;
+      } catch (err) {
+        console.error("Transaction error:", err);
+        alert("❌ Purchase failed. See console for details.");
+      }
+    }
+  </script>
+</body>
+</html>
