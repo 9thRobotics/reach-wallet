@@ -2,233 +2,161 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Reach Token Buy Portal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reach Token Portal</title>
+  <link rel="stylesheet" href="styles.css" />
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <script src="https://unpkg.com/@walletconnect/web3-provider@1.7.8/dist/umd/index.min.js"></script>
   <script src="https://unpkg.com/@coinbase/wallet-sdk@3.11.0/dist/umd/wallet-sdk.min.js"></script>
-  <style>
-    body {
-      background: #111;
-      color: white;
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 40px;
-    }
-    button {
-      padding: 12px 20px;
-      font-size: 16px;
-      margin: 10px;
-      background-color: #1c90f3;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-    input {
-      padding: 10px;
-      font-size: 16px;
-      margin-top: 10px;
-      width: 200px;
-      text-align: center;
-    }
-    img {
-      height: 20px;
-    }
-    #status, #estimator, #calc-output {
-      margin-top: 20px;
-      font-size: 1em;
-    }
-  </style>
 </head>
 <body>
   <h1>🔗 Reach Token Portal</h1>
-  <div>
-    <button onclick="connectInjected('metamask')">
+  <div id="wallet-buttons">
+    <button onclick="connectInjected('metamask')" aria-label="Connect MetaMask">
       <img src="https://cryptologos.cc/logos/metamask-fox-logo.png" alt="MetaMask" /> MetaMask
     </button>
-    <button onclick="connectInjected('trustwallet')">
-      <img src="https://trustwallet.com/assets/images/media/assets/TWT.png" alt="TrustWallet" /> Trust Wallet
+    <button onclick="connectInjected('trustwallet')" aria-label="Connect Trust Wallet">
+      <img src="https://trustwallet.com/assets/images/media/assets/TWT.png" alt="Trust Wallet" /> Trust Wallet
     </button>
-    <button onclick="connectCoinbase()">
+    <button onclick="connectCoinbase()" aria-label="Connect Coinbase">
       <img src="https://cryptologos.cc/logos/coinbase-coinbase-logo.png" alt="Coinbase" /> Coinbase
     </button>
-    <button onclick="connectWalletConnect()">
+    <button onclick="connectWalletConnect()" aria-label="Connect WalletConnect">
       <img src="https://cryptologos.cc/logos/walletconnect-walletconnect-logo.png" alt="WalletConnect" /> WalletConnect
     </button>
   </div>
   <button onclick="disconnectWallet()" id="disconnectButton" style="display:none;">❌ Disconnect</button>
-  <br/>
-  <input type="number" id="tokenAmount" placeholder="How many Reach tokens?" />
+  <br />
+  <input type="number" id="tokenAmount" placeholder="How many Reach tokens?" aria-label="Token Amount" />
   <div id="calc-output"></div>
   <button onclick="buyTokens()" id="buyButton" style="display:none;">🪙 Buy Reach Tokens</button>
   <div id="status">Wallet not connected.</div>
   <div id="estimator"></div>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Wallet Connect</title>
-</head>
-<body>
-  <div id="wallet-buttons"></div>
-
-  <script>
-    // Array of wallet identifiers
-    const wallets = [
-      { name: "MetaMask", id: "io.metamask" },
-      { name: "Coinbase Wallet", id: "com.coinbase.wallet" },
-      { name: "Trust Wallet", id: "com.trustwallet.app" },
-      { name: "Binance Wallet", id: "com.binance.wallet" },
-      { name: "Uniswap", id: "org.uniswap" },
-      { name: "Crypto.com", id: "com.crypto.wallet" },
-      { name: "Kraken", id: "com.kraken" },
-      { name: "SafeMoon", id: "com.safemoon" }
-    ];
-
-    // Function to create wallet buttons
-    function createWalletButtons(wallets) {
-      const container = document.getElementById('wallet-buttons');
-      wallets.forEach(wallet => {
-        const button = document.createElement('button');
-        button.textContent = `Connect ${wallet.name}`;
-        button.onclick = () => connectWallet(wallet.id);
-        container.appendChild(button);
-      });
-    }
-
-    // Function to handle wallet connection
-    function connectWallet(walletId) {
-      console.log(`Connecting to wallet: ${walletId}`);
-      // Add your wallet connection logic here
-    }
-
-    // Create wallet buttons on page load
-    createWalletButtons(wallets);
-  </script>
+  <script src="app.js"></script>
 </body>
 </html>
-  <script>
-    let provider, web3Provider, signer, selectedAccount;
+body {
+  background: #111;
+  color: white;
+  font-family: Arial, sans-serif;
+  text-align: center;
+  padding: 40px;
+}
 
-    const walletConnectProvider = new window.WalletConnectProvider.default({
-      infuraId: "63f289c3783f403aa722e9bda1b680aa"
-    });
+button {
+  padding: 12px 20px;
+  font-size: 16px;
+  margin: 10px;
+  background-color: #1c90f3;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
 
-    const coinbaseWalletProvider = new window.CoinbaseWalletSDK({
-      appName: "ReachToken Portal",
-      infuraId: "63f289c3783f403aa722e9bda1b680aa"
-    });
+button:disabled {
+  background-color: #555;
+  cursor: not-allowed;
+}
 
-    async function connectInjected(type) {
-      if (typeof window.ethereum === "undefined") {
-        alert("No wallet found. Install MetaMask or Trust Wallet.");
-        return;
-      }
+input {
+  padding: 10px;
+  font-size: 16px;
+  margin-top: 10px;
+  width: 200px;
+  text-align: center;
+}
 
-      try {
-        provider = window.ethereum;
-        await provider.request({ method: "eth_requestAccounts" });
-        web3Provider = new ethers.providers.Web3Provider(provider);
-        signer = web3Provider.getSigner();
-        selectedAccount = await signer.getAddress();
-        document.getElementById("status").innerText = "✅ Connected: " + selectedAccount;
-        document.getElementById("buyButton").style.display = "inline-block";
-        document.getElementById("disconnectButton").style.display = "inline-block";
-      } catch (e) {
-        console.error("Connection error:", e);
-        document.getElementById("status").innerText = "❌ Failed to connect.";
-      }
-    }
+img {
+  height: 20px;
+}
 
-    async function connectWalletConnect() {
-      try {
-        await walletConnectProvider.enable();
-        web3Provider = new ethers.providers.Web3Provider(walletConnectProvider);
-        signer = web3Provider.getSigner();
-        selectedAccount = await signer.getAddress();
-        document.getElementById("status").innerText = "✅ Connected via WalletConnect: " + selectedAccount;
-        document.getElementById("buyButton").style.display = "inline-block";
-        document.getElementById("disconnectButton").style.display = "inline-block";
-      } catch (err) {
-        console.error("WalletConnect error:", err);
-      }
-    }
+#status, #estimator, #calc-output {
+  margin-top: 20px;
+  font-size: 1em;
+}
+let provider, web3Provider, signer, selectedAccount;
 
-    async function connectCoinbase() {
-      try {
-        const cbProvider = coinbaseWalletProvider.makeWeb3Provider("https://mainnet.infura.io/v3/63f289c3783f403aa722e9bda1b680aa", 1);
-        provider = cbProvider;
-        web3Provider = new ethers.providers.Web3Provider(provider);
-        signer = web3Provider.getSigner();
-        selectedAccount = await signer.getAddress();
-        document.getElementById("status").innerText = "✅ Connected via Coinbase: " + selectedAccount;
-        document.getElementById("buyButton").style.display = "inline-block";
-        document.getElementById("disconnectButton").style.display = "inline-block";
-      } catch (e) {
-        console.error("Coinbase connect error:", e);
-      }
-    }
+const walletConnectProvider = new window.WalletConnectProvider.default({
+  infuraId: process.env.INFURA_ID || "your-infura-id"
+});
 
-    function disconnectWallet() {
-      provider = null;
-      web3Provider = null;
-      signer = null;
-      selectedAccount = null;
-      document.getElementById("status").innerText = "🔌 Wallet disconnected.";
-      document.getElementById("buyButton").style.display = "none";
-      document.getElementById("disconnectButton").style.display = "none";
-      document.getElementById("calc-output").innerText = "";
-    }
+const coinbaseWalletProvider = new window.CoinbaseWalletSDK({
+  appName: "ReachToken Portal",
+  infuraId: process.env.INFURA_ID || "your-infura-id"
+});
 
-    document.getElementById("tokenAmount").addEventListener("input", function() {
-      const tokenPriceUSD = 27;
-      const ethToUsdRate = 3000;
-      const tokenCount = parseFloat(this.value);
-      if (!isNaN(tokenCount) && tokenCount > 0) {
-        const totalUSD = tokenCount * tokenPriceUSD;
-        const totalETH = totalUSD / ethToUsdRate;
-        document.getElementById("calc-output").innerHTML = `
-          💵 USD Total: <strong>$${totalUSD.toFixed(2)}</strong><br/>
-          Ξ ETH Required: <strong>${totalETH.toFixed(6)}</strong>
-        `;
-      } else {
-        document.getElementById("calc-output").innerText = "";
-      }
-    });
+async function connectInjected(type) {
+  if (typeof window.ethereum === "undefined") {
+    showError("No wallet found. Install MetaMask or Trust Wallet.");
+    return;
+  }
 
-    async function buyTokens() {
-      try {
-        const tokenPriceUSD = 27;
-        const ethToUsdRate = 3000;
-        const tokenCount = parseFloat(document.getElementById("tokenAmount").value);
-        if (!tokenCount || isNaN(tokenCount) || tokenCount <= 0) {
-          alert("Enter a valid token amount.");
-          return;
-        }
+  try {
+    provider = window.ethereum;
+    await provider.request({ method: "eth_requestAccounts" });
+    web3Provider = new ethers.providers.Web3Provider(provider);
+    signer = web3Provider.getSigner();
+    selectedAccount = await signer.getAddress();
+    updateUI("Connected", `✅ Connected: ${selectedAccount}`);
+  } catch (e) {
+    console.error("Connection error:", e);
+    updateUI("Failed", "❌ Failed to connect.");
+  }
+}
 
-        const totalUSD = tokenCount * tokenPriceUSD;
-        const totalETH = (totalUSD / ethToUsdRate).toFixed(6);
+async function connectWalletConnect() {
+  try {
+    await walletConnectProvider.enable();
+    web3Provider = new ethers.providers.Web3Provider(walletConnectProvider);
+    signer = web3Provider.getSigner();
+    selectedAccount = await signer.getAddress();
+    updateUI("Connected", `✅ Connected via WalletConnect: ${selectedAccount}`);
+  } catch (err) {
+    console.error("WalletConnect error:", err);
+    showError("WalletConnect connection failed.");
+  }
+}
 
-        const tx = await signer.sendTransaction({
-          to: "0x41A61CdCf40a074546423Bae987B81733F3FBAc5",
-          value: ethers.utils.parseEther(totalETH)
-        });
+async function connectCoinbase() {
+  try {
+    const cbProvider = coinbaseWalletProvider.makeWeb3Provider(
+      "https://mainnet.infura.io/v3/" + process.env.INFURA_ID,
+      1
+    );
+    web3Provider = new ethers.providers.Web3Provider(cbProvider);
+    signer = web3Provider.getSigner();
+    selectedAccount = await signer.getAddress();
+    updateUI("Connected", `✅ Connected via Coinbase: ${selectedAccount}`);
+  } catch (e) {
+    console.error("Coinbase connect error:", e);
+    showError("Coinbase connection failed.");
+  }
+}
 
-        document.getElementById("status").innerText = `⏳ Transaction sent: ${tx.hash}`;
-        document.getElementById("estimator").innerText = `💸 Paid ${totalETH} ETH for ${tokenCount} Reach tokens`;
-        await tx.wait();
-        document.getElementById("status").innerText = `✅ Purchase confirmed!`;
-      } catch (err) {
-        console.error("Buy error:", err);
-        alert("❌ Purchase failed. See console for details.");
-      }
-    }
-  </script>
-</body>
-</html>
+function disconnectWallet() {
+  provider = null;
+  web3Provider = null;
+  signer = null;
+  selectedAccount = null;
+  updateUI("Disconnected", "🔌 Wallet disconnected.");
+}
+
+function showError(message) {
+  alert(message);
+  document.getElementById("status").innerText = message;
+}
+
+function updateUI(status, message) {
+  document.getElementById("status").innerText = message;
+  document.getElementById("buyButton").style.display =
+    status === "Connected" ? "inline-block" : "none";
+  document.getElementById("disconnectButton").style.display =
+    status === "Connected" ? "inline-block" : "none";
+}
+
+// Add more logic for token purchase, calculations, etc.
