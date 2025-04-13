@@ -67,6 +67,8 @@
       <div>Fee (0.75%): <span id="fee">0.000000 ETH</span></div>
       <div><strong>Total ETH:</strong> <span id="totalEth">0.000000 ETH</span></div>
     </div>
+    <label for="tokenAmount">Enter Reach Token amount:</label><br/>
+    <input id="tokenAmount" placeholder="Enter token amount" oninput="updateTotals()" type="number" />
     <input id="tokenAmount" placeholder="Enter token amount" oninput="updateTotals()" />
     <br /><br />
     <button onclick="showBuyPopup()">✅ Confirm Purchase</button>
