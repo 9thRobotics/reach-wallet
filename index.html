@@ -1,1 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Connect Wallet | Reach Token</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+    <!-- Thirdweb CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@thirdweb-dev/sdk@latest/dist/browser/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@thirdweb-dev/wallets@latest/dist/browser/index.min.js"></script>
+  </head>
+
+  <body style="font-family: sans-serif; text-align: center; padding-top: 100px;">
+    <h1>Connect to Reach Token Wallet</h1>
+
+    <button id="connectBtn" style="padding: 12px 24px; font-size: 16px;">Connect Wallet</button>
+    <p id="walletAddress" style="margin-top: 20px;"></p>
+
+    <script>
+      const { ThirdwebSDK } = thirdweb;
+      const { MetaMaskWallet, WalletConnectWallet, CoinbaseWallet } = thirdwebWallets;
+
+      let connectedWallet = null;
+
+      const connectBtn = document.getElementById("connectBtn");
+      const walletDisplay = document.getElementById("walletAddress");
+
+      const connectWallet = async () => {
+        try {
+          if (connectedWallet) {
+            // Disconnect
+            await connectedWallet.disconnect();
+            walletDisplay.textContent = "";
+            connectedWallet = null;
+            connectBtn.textContent = "Connect Wallet";
+            return;
+          }
+
+          const wallet = new MetaMaskWallet();
+          await wallet.connect();
+          connectedWallet = wallet;
+
+          const address = await wallet.getAddress();
+          walletDisplay.textContent = `Connected: ${address}`;
+          console.log("Connected wallet:", address);
+          connectBtn.textContent = "Disconnect Wallet";
+        } catch (err) {
+          console.error("Wallet connection failed:", err);
+        }
+      };
+
+      connectBtn.addEventListener("click", connectWallet);
+    </script>
+  </body>
+</html>
