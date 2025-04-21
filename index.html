@@ -1,55 +1,64 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Connect Wallet | Reach Token</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Reach Token Wallet Connect</title>
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding-top: 100px;
+    }
+    button {
+      padding: 12px 24px;
+      font-size: 16px;
+      margin: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Connect to Reach Token Wallet</h1>
+  <button id="connectWallet">Connect Wallet</button>
+  <button id="disconnectWallet" style="display:none;">Disconnect</button>
+  <p id="walletDisplay"></p>
 
-    <!-- Thirdweb CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@thirdweb-dev/sdk@latest/dist/browser/index.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@thirdweb-dev/wallets@latest/dist/browser/index.min.js"></script>
-  </head>
+  <script>
+    let web3;
+    let currentAccount = null;
 
-  <body style="font-family: sans-serif; text-align: center; padding-top: 100px;">
-    <h1>Connect to Reach Token Wallet</h1>
+    const connectButton = document.getElementById("connectWallet");
+    const disconnectButton = document.getElementById("disconnectWallet");
+    const walletDisplay = document.getElementById("walletDisplay");
 
-    <button id="connectBtn" style="padding: 12px 24px; font-size: 16px;">Connect Wallet</button>
-    <p id="walletAddress" style="margin-top: 20px;"></p>
-
-    <script>
-      const { ThirdwebSDK } = thirdweb;
-      const { MetaMaskWallet, WalletConnectWallet, CoinbaseWallet } = thirdwebWallets;
-
-      let connectedWallet = null;
-
-      const connectBtn = document.getElementById("connectBtn");
-      const walletDisplay = document.getElementById("walletAddress");
-
-      const connectWallet = async () => {
+    async function connectWallet() {
+      if (window.ethereum) {
+        web3 = new Web3(window.ethereum);
         try {
-          if (connectedWallet) {
-            // Disconnect
-            await connectedWallet.disconnect();
-            walletDisplay.textContent = "";
-            connectedWallet = null;
-            connectBtn.textContent = "Connect Wallet";
-            return;
-          }
-
-          const wallet = new MetaMaskWallet();
-          await wallet.connect();
-          connectedWallet = wallet;
-
-          const address = await wallet.getAddress();
-          walletDisplay.textContent = `Connected: ${address}`;
-          console.log("Connected wallet:", address);
-          connectBtn.textContent = "Disconnect Wallet";
-        } catch (err) {
-          console.error("Wallet connection failed:", err);
+          const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+          currentAccount = accounts[0];
+          walletDisplay.innerText = `Connected: ${currentAccount}`;
+          connectButton.style.display = 'none';
+          disconnectButton.style.display = 'inline-block';
+          console.log("Connected wallet:", currentAccount);
+        } catch (error) {
+          console.error("Connection error:", error);
         }
-      };
+      } else {
+        alert("Please install MetaMask or a Web3 wallet.");
+      }
+    }
 
-      connectBtn.addEventListener("click", connectWallet);
-    </script>
-  </body>
+    function disconnectWallet() {
+      currentAccount = null;
+      walletDisplay.innerText = "Disconnected";
+      connectButton.style.display = 'inline-block';
+      disconnectButton.style.display = 'none';
+      console.log("Wallet disconnected.");
+    }
+
+    connectButton.onclick = connectWallet;
+    disconnectButton.onclick = disconnectWallet;
+  </script>
+</body>
 </html>
