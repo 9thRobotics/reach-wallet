@@ -1,37 +1,123 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
+  <title>Reach Token Portal | 9th Dimension Robotics</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Reach Token Portal</title>
-  <link rel="stylesheet" href="styles.css" />
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-  <script src="https://unpkg.com/@walletconnect/web3-provider@1.7.8/dist/umd/index.min.js"></script>
-  <script src="https://unpkg.com/@coinbase/wallet-sdk@3.11.0/dist/umd/wallet-sdk.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(to right, #0f0c29, #302b63, #24243e);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #ffffff;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+
+    p {
+      font-size: 1.2rem;
+      margin-top: 0;
+    }
+
+    button {
+      background: linear-gradient(135deg, #1e90ff, #00c6ff);
+      color: #fff;
+      padding: 15px 40px;
+      font-size: 1.1rem;
+      border: none;
+      border-radius: 40px;
+      box-shadow: 0 0 20px #00c6ff;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin: 10px;
+    }
+
+    button:hover {
+      box-shadow: 0 0 30px #1e90ff, 0 0 60px #00c6ff;
+      transform: scale(1.05);
+    }
+
+    #walletDisplay {
+      margin-top: 20px;
+      font-size: 1.1rem;
+      word-wrap: break-word;
+    }
+
+    #logo {
+      width: 100px;
+      margin-bottom: 20px;
+      filter: drop-shadow(0 0 8px #00c6ff);
+    }
+
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 1.8rem;
+      }
+
+      button {
+        padding: 12px 25px;
+        font-size: 1rem;
+      }
+    }
+  </style>
 </head>
 <body>
-  <h1>🔗 Reach Token Portal</h1>
-  <div id="wallet-buttons">
-    <button onclick="connectInjected('metamask')" aria-label="Connect MetaMask">
-      <img src="https://cryptologos.cc/logos/metamask-fox-logo.png" alt="MetaMask" /> MetaMask
-    </button>
-    <button onclick="connectInjected('trustwallet')" aria-label="Connect Trust Wallet">
-      <img src="https://trustwallet.com/assets/images/media/assets/TWT.png" alt="Trust Wallet" /> Trust Wallet
-    </button>
-    <button onclick="connectCoinbase()" aria-label="Connect Coinbase">
-      <img src="https://cryptologos.cc/logos/coinbase-coinbase-logo.png" alt="Coinbase" /> Coinbase
-    </button>
-    <button onclick="connectWalletConnect()" aria-label="Connect WalletConnect">
-      <img src="https://cryptologos.cc/logos/walletconnect-walletconnect-logo.png" alt="WalletConnect" /> WalletConnect
-    </button>
-  </div>
-  <button onclick="disconnectWallet()" id="disconnectButton" style="display:none;">❌ Disconnect</button>
-  <br />
-  <input type="number" id="tokenAmount" placeholder="How many Reach tokens?" aria-label="Token Amount" />
-  <div id="calc-output"></div>
-  <button onclick="buyTokens()" id="buyButton" style="display:none;">🪙 Buy Reach Tokens</button>
-  <div id="status">Wallet not connected.</div>
-  <div id="estimator"></div>
-  <script src="app.js"></script>
+  <!-- Placeholder for future logo -->
+  <img id="logo" src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/9th_logo.svg/512px-9th_logo.svg.png" alt="Reach Token Logo">
+
+  <h1>Welcome to Reach Token Portal</h1>
+  <p>Connect your Web3 wallet to begin your journey into the 9th Dimension.</p>
+
+  <button id="connectWallet">Connect Wallet</button>
+  <button id="disconnectWallet" style="display:none;">Disconnect</button>
+
+  <div id="walletDisplay"></div>
+
+  <script>
+    let web3;
+    let currentAccount = null;
+
+    const connectButton = document.getElementById("connectWallet");
+    const disconnectButton = document.getElementById("disconnectWallet");
+    const walletDisplay = document.getElementById("walletDisplay");
+
+    async function connectWallet() {
+      if (window.ethereum) {
+        web3 = new Web3(window.ethereum);
+        try {
+          const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+          currentAccount = accounts[0];
+          walletDisplay.innerHTML = `🔗 Connected: <strong>${currentAccount}</strong>`;
+          connectButton.style.display = 'none';
+          disconnectButton.style.display = 'inline-block';
+          console.log("Wallet connected:", currentAccount);
+        } catch (err) {
+          console.error("User rejected connection:", err);
+        }
+      } else {
+        alert("MetaMask or Web3 wallet not found. Please install it first.");
+      }
+    }
+
+    function disconnectWallet() {
+      currentAccount = null;
+      walletDisplay.innerHTML = "❌ Wallet disconnected.";
+      connectButton.style.display = 'inline-block';
+      disconnectButton.style.display = 'none';
+    }
+
+    connectButton.addEventListener("click", connectWallet);
+    disconnectButton.addEventListener("click", disconnectWallet);
+  </script>
 </body>
 </html>
