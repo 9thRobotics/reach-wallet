@@ -91,9 +91,14 @@
     let provider;
     let contract;
 
-    const tokenUsd = 27;
-    const ethUsd = 1867.64;
-    const feeRate = 0.0075;
+   const tokenPriceUSD = 27; // Example token price in USD
+const ethPriceUSD = 1867.64; // Example ETH price in USD
+const feeRate = 0.0075; // 0.75% fee
+
+const subtotalUSD = desiredTokenAmount * tokenPriceUSD;
+const ethSubtotal = subtotalUSD / ethPriceUSD;
+const fee = ethSubtotal * feeRate;
+const totalETH = ethSubtotal + fee;
 
     async function showWalletOptions() {
       if (window.ethereum) {
