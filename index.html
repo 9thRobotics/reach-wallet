@@ -1,157 +1,37 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
-  <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
- <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
-<script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
-
-  <style>
-    body {
-      background: #0f0f0f;
-      font-family: sans-serif;
-      color: white;
-      text-align: center;
-      padding-top: 50px;
-    }
-    .btn {
-      padding: 12px 20px;
-      margin: 10px;
-      font-size: 16px;
-      border: none;
-      border-radius: 6px;
-      background: #0ff;
-      color: #000;
-      cursor: pointer;
-    }
-    #buyPopup {
-      display: none;
-      background: #1a1a1a;
-      border: 1px solid #444;
-      padding: 20px;
-      position: fixed;
-      left: 50%;
-      top: 40%;
-      transform: translate(-50%, -50%);
-      border-radius: 8px;
-      width: 300px;
-      z-index: 10;
-    }
-    .popup-field {
-      margin: 10px 0;
-    }
-    .popup-field input {
-      width: 100%;
-      padding: 10px;
-      border: none;
-      background: #222;
-      color: #fff;
-      border-radius: 4px;
-      font-size: 16px;
-    }
-    .popup-info {
-      margin-top: 10px;
-      text-align: left;
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reach Token Portal</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <script src="https://unpkg.com/@walletconnect/web3-provider@1.7.8/dist/umd/index.min.js"></script>
+  <script src="https://unpkg.com/@coinbase/wallet-sdk@3.11.0/dist/umd/wallet-sdk.min.js"></script>
 </head>
 <body>
-  <button class="btn" onclick="showWalletOptions()">🔌 Connect Wallet</button>
-  <button class="btn" onclick="disconnectWallet()">❌ Disconnect</button>
-  <button class="btn" onclick="showBuyPopup()">💸 Buy Tokens</button>
-
-  <div id="buyPopup">
-    <div class="popup-field">
-      <label for="tokenAmount">Enter Reach Token amount:</label>
-      <input type="number" id="tokenAmount" oninput="updateTotals()" placeholder="e.g. 10" />
-    </div>
-    <div class="popup-info">
-      <div>Token Amount: <span id="tokenQty">0</span> 9D-RC</div>
-      <div>Price per Token: <span id="pricePerToken">27 USD</span></div>
-      <div>Subtotal in ETH: <span id="ethSubtotal">0</span></div>
-      <div>Fee (0.75%): <span id="fee">0</span></div>
-      <div><strong>Total ETH:</strong> <span id="totalEth">0</span></div>
-    </div>
-    <br />
-    <button class="btn" onclick="buyTokens()">Confirm Purchase</button>
-    <button class="btn" onclick="closePopup()">Cancel</button>
+  <h1>🔗 Reach Token Portal</h1>
+  <div id="wallet-buttons">
+    <button onclick="connectInjected('metamask')" aria-label="Connect MetaMask">
+      <img src="https://cryptologos.cc/logos/metamask-fox-logo.png" alt="MetaMask" /> MetaMask
+    </button>
+    <button onclick="connectInjected('trustwallet')" aria-label="Connect Trust Wallet">
+      <img src="https://trustwallet.com/assets/images/media/assets/TWT.png" alt="Trust Wallet" /> Trust Wallet
+    </button>
+    <button onclick="connectCoinbase()" aria-label="Connect Coinbase">
+      <img src="https://cryptologos.cc/logos/coinbase-coinbase-logo.png" alt="Coinbase" /> Coinbase
+    </button>
+    <button onclick="connectWalletConnect()" aria-label="Connect WalletConnect">
+      <img src="https://cryptologos.cc/logos/walletconnect-walletconnect-logo.png" alt="WalletConnect" /> WalletConnect
+    </button>
   </div>
-
-  <script>
-    const CONTRACT_ADDRESS = "0x0557aFA4318989702376D50B45547F953b7F9B21";
-    const INFURA_ID = "63f289c3783f403aa722e9bda1b680aa";
-    const ABI = [
-      {"inputs":[{"internalType":"address","name":"_priceFeed","type":"address"},{"internalType":"address","name":"_token","type":"address"},{"internalType":"address","name":"_treasury","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},
-      {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"buyer","type":"address"},{"indexed":false,"internalType":"uint256","name":"ethAmount","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"tokenAmount","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"price","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"timestamp","type":"uint256"}],"name":"TokensBought","type":"event"},
-      {"inputs":[{"internalType":"uint256","name":"minTokens","type":"uint256"}],"name":"buyTokens","outputs":[],"stateMutability":"payable","type":"function"},
-      {"stateMutability":"payable","type":"receive"}
-    ];
-
-    let web3;
-    let provider;
-    let contract;
-
-    const tokenUsd = 27;
-    const ethUsd = 1867.64;
-    const feeRate = 0.0075;
-
-    async function showWalletOptions() {
-      if (window.ethereum) {
-        provider = window.ethereum;
-        web3 = new Web3(provider);
-        await provider.request({ method: 'eth_requestAccounts' });
-        contract = new web3.eth.Contract(ABI, CONTRACT_ADDRESS);
-        alert("✅ Wallet connected");
-      } else {
-        alert("❌ No Ethereum provider detected");
-      }
-    }
-
-    function disconnectWallet() {
-      alert("🔌 Disconnect from wallet manually via wallet settings");
-    }
-
-    function showBuyPopup() {
-      document.getElementById("buyPopup").style.display = "block";
-    }
-
-    function closePopup() {
-      document.getElementById("buyPopup").style.display = "none";
-    }
-
-    function updateTotals() {
-      const tokenAmount = parseFloat(document.getElementById("tokenAmount").value) || 0;
-      const subtotalUSD = tokenAmount * tokenUsd;
-      const ethSubtotal = subtotalUSD / ethUsd;
-      const fee = ethSubtotal * feeRate;
-      const totalETH = ethSubtotal + fee;
-
-      document.getElementById("tokenQty").innerText = tokenAmount.toFixed(2);
-      document.getElementById("ethSubtotal").innerText = ethSubtotal.toFixed(6) + " ETH";
-      document.getElementById("fee").innerText = fee.toFixed(6) + " ETH";
-      document.getElementById("totalEth").innerText = totalETH.toFixed(6) + " ETH";
-    }
-
-    async function buyTokens() {
-      try {
-        const accounts = await web3.eth.getAccounts();
-        const sender = accounts[0];
-        const tokenAmount = parseFloat(document.getElementById("tokenAmount").value) || 0;
-
-        const usdTotal = tokenAmount * tokenUsd;
-        const ethAmount = (usdTotal / ethUsd) * (1 + feeRate);
-
-        const tx = await contract.methods.buyTokens(tokenAmount).send({
-          from: sender,
-          value: web3.utils.toWei(ethAmount.toString(), "ether")
-        });
-
-        alert("🎉 Purchase successful!");
-        closePopup();
-      } catch (err) {
-        alert("❌ Transaction failed: " + err.message);
-      }
-    }
-  </script>
+  <button onclick="disconnectWallet()" id="disconnectButton" style="display:none;">❌ Disconnect</button>
+  <br />
+  <input type="number" id="tokenAmount" placeholder="How many Reach tokens?" aria-label="Token Amount" />
+  <div id="calc-output"></div>
+  <button onclick="buyTokens()" id="buyButton" style="display:none;">🪙 Buy Reach Tokens</button>
+  <div id="status">Wallet not connected.</div>
+  <div id="estimator"></div>
+  <script src="app.js"></script>
 </body>
 </html>
