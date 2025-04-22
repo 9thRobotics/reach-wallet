@@ -1,64 +1,81 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8" />
-  <title>Reach Token Wallet Connect</title>
-  <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding-top: 100px;
-    }
-    button {
-      padding: 12px 24px;
-      font-size: 16px;
-      margin: 10px;
-    }
-  </style>
-</head>
-<body>
-  <h1>Connect to Reach Token Wallet</h1>
-  <button id="connectWallet">Connect Wallet</button>
-  <button id="disconnectWallet" style="display:none;">Disconnect</button>
-  <p id="walletDisplay"></p>
+let provider, web3Provider, signer, selectedAccount;
 
-  <script>
-    let web3;
-    let currentAccount = null;
+const walletConnectProvider = new window.WalletConnectProvider.default({
+  infuraId: process.env.INFURA_ID || "your-infura-id"
+});
 
-    const connectButton = document.getElementById("connectWallet");
-    const disconnectButton = document.getElementById("disconnectWallet");
-    const walletDisplay = document.getElementById("walletDisplay");
+const coinbaseWalletProvider = new window.CoinbaseWalletSDK({
+  appName: "ReachToken Portal",
+  infuraId: process.env.INFURA_ID || "your-infura-id"
+});
 
-    async function connectWallet() {
-      if (window.ethereum) {
-        web3 = new Web3(window.ethereum);
-        try {
-          const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
-          currentAccount = accounts[0];
-          walletDisplay.innerText = `Connected: ${currentAccount}`;
-          connectButton.style.display = 'none';
-          disconnectButton.style.display = 'inline-block';
-          console.log("Connected wallet:", currentAccount);
-        } catch (error) {
-          console.error("Connection error:", error);
-        }
-      } else {
-        alert("Please install MetaMask or a Web3 wallet.");
-      }
-    }
+async function connectInjected(type) {
+  if (typeof window.ethereum === "undefined") {
+    showError("No wallet found. Install MetaMask or Trust Wallet.");
+    return;
+  }
 
-    function disconnectWallet() {
-      currentAccount = null;
-      walletDisplay.innerText = "Disconnected";
-      connectButton.style.display = 'inline-block';
-      disconnectButton.style.display = 'none';
-      console.log("Wallet disconnected.");
-    }
+  try {
+    provider = window.ethereum;
+    await provider.request({ method: "eth_requestAccounts" });
+    web3Provider = new ethers.providers.Web3Provider(provider);
+    signer = web3Provider.getSigner();
+    selectedAccount = await signer.getAddress();
+    updateUI("Connected", `✅ Connected: ${selectedAccount}`);
+  } catch (e) {
+    console.error("Connection error:", e);
+    updateUI("Failed", "❌ Failed to connect.");
+  }
+}
 
-    connectButton.onclick = connectWallet;
-    disconnectButton.onclick = disconnectWallet;
-  </script>
-</body>
-</html>
+async function connectWalletConnect() {
+  try {
+    await walletConnectProvider.enable();
+    web3Provider = new ethers.providers.Web3Provider(walletConnectProvider);
+    signer = web3Provider.getSigner();
+    selectedAccount = await signer.getAddress();
+    updateUI("Connected", `✅ Connected via WalletConnect: ${selectedAccount}`);
+  } catch (err) {
+    console.error("WalletConnect error:", err);
+    showError("WalletConnect connection failed.");
+  }
+}
+
+async function connectCoinbase() {
+  try {
+    const cbProvider = coinbaseWalletProvider.makeWeb3Provider(
+      "https://mainnet.infura.io/v3/" + process.env.INFURA_ID,
+      1
+    );
+    web3Provider = new ethers.providers.Web3Provider(cbProvider);
+    signer = web3Provider.getSigner();
+    selectedAccount = await signer.getAddress();
+    updateUI("Connected", `✅ Connected via Coinbase: ${selectedAccount}`);
+  } catch (e) {
+    console.error("Coinbase connect error:", e);
+    showError("Coinbase connection failed.");
+  }
+}
+
+function disconnectWallet() {
+  provider = null;
+  web3Provider = null;
+  signer = null;
+  selectedAccount = null;
+  updateUI("Disconnected", "🔌 Wallet disconnected.");
+}
+
+function showError(message) {
+  alert(message);
+  document.getElementById("status").innerText = message;
+}
+
+function updateUI(status, message) {
+  document.getElementById("status").innerText = message;
+  document.getElementById("buyButton").style.display =
+    status === "Connected" ? "inline-block" : "none";
+  document.getElementById("disconnectButton").style.display =
+    status === "Connected" ? "inline-block" : "none";
+}
+
+// Add more logic for token purchase, calculations, etc.
