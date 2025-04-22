@@ -1,81 +1,157 @@
-let provider, web3Provider, signer, selectedAccount;
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+  <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
+ <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+<script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
 
-const walletConnectProvider = new window.WalletConnectProvider.default({
-  infuraId: process.env.INFURA_ID || "your-infura-id"
-});
+  <style>
+    body {
+      background: #0f0f0f;
+      font-family: sans-serif;
+      color: white;
+      text-align: center;
+      padding-top: 50px;
+    }
+    .btn {
+      padding: 12px 20px;
+      margin: 10px;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      background: #0ff;
+      color: #000;
+      cursor: pointer;
+    }
+    #buyPopup {
+      display: none;
+      background: #1a1a1a;
+      border: 1px solid #444;
+      padding: 20px;
+      position: fixed;
+      left: 50%;
+      top: 40%;
+      transform: translate(-50%, -50%);
+      border-radius: 8px;
+      width: 300px;
+      z-index: 10;
+    }
+    .popup-field {
+      margin: 10px 0;
+    }
+    .popup-field input {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      background: #222;
+      color: #fff;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    .popup-info {
+      margin-top: 10px;
+      text-align: left;
+    }
+  </style>
+</head>
+<body>
+  <button class="btn" onclick="showWalletOptions()">🔌 Connect Wallet</button>
+  <button class="btn" onclick="disconnectWallet()">❌ Disconnect</button>
+  <button class="btn" onclick="showBuyPopup()">💸 Buy Tokens</button>
 
-const coinbaseWalletProvider = new window.CoinbaseWalletSDK({
-  appName: "ReachToken Portal",
-  infuraId: process.env.INFURA_ID || "your-infura-id"
-});
+  <div id="buyPopup">
+    <div class="popup-field">
+      <label for="tokenAmount">Enter Reach Token amount:</label>
+      <input type="number" id="tokenAmount" oninput="updateTotals()" placeholder="e.g. 10" />
+    </div>
+    <div class="popup-info">
+      <div>Token Amount: <span id="tokenQty">0</span> 9D-RC</div>
+      <div>Price per Token: <span id="pricePerToken">27 USD</span></div>
+      <div>Subtotal in ETH: <span id="ethSubtotal">0</span></div>
+      <div>Fee (0.75%): <span id="fee">0</span></div>
+      <div><strong>Total ETH:</strong> <span id="totalEth">0</span></div>
+    </div>
+    <br />
+    <button class="btn" onclick="buyTokens()">Confirm Purchase</button>
+    <button class="btn" onclick="closePopup()">Cancel</button>
+  </div>
 
-async function connectInjected(type) {
-  if (typeof window.ethereum === "undefined") {
-    showError("No wallet found. Install MetaMask or Trust Wallet.");
-    return;
-  }
+  <script>
+    const CONTRACT_ADDRESS = "0x0557aFA4318989702376D50B45547F953b7F9B21";
+    const INFURA_ID = "63f289c3783f403aa722e9bda1b680aa";
+    const ABI = [
+      {"inputs":[{"internalType":"address","name":"_priceFeed","type":"address"},{"internalType":"address","name":"_token","type":"address"},{"internalType":"address","name":"_treasury","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},
+      {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"buyer","type":"address"},{"indexed":false,"internalType":"uint256","name":"ethAmount","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"tokenAmount","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"price","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"timestamp","type":"uint256"}],"name":"TokensBought","type":"event"},
+      {"inputs":[{"internalType":"uint256","name":"minTokens","type":"uint256"}],"name":"buyTokens","outputs":[],"stateMutability":"payable","type":"function"},
+      {"stateMutability":"payable","type":"receive"}
+    ];
 
-  try {
-    provider = window.ethereum;
-    await provider.request({ method: "eth_requestAccounts" });
-    web3Provider = new ethers.providers.Web3Provider(provider);
-    signer = web3Provider.getSigner();
-    selectedAccount = await signer.getAddress();
-    updateUI("Connected", `✅ Connected: ${selectedAccount}`);
-  } catch (e) {
-    console.error("Connection error:", e);
-    updateUI("Failed", "❌ Failed to connect.");
-  }
-}
+    let web3;
+    let provider;
+    let contract;
 
-async function connectWalletConnect() {
-  try {
-    await walletConnectProvider.enable();
-    web3Provider = new ethers.providers.Web3Provider(walletConnectProvider);
-    signer = web3Provider.getSigner();
-    selectedAccount = await signer.getAddress();
-    updateUI("Connected", `✅ Connected via WalletConnect: ${selectedAccount}`);
-  } catch (err) {
-    console.error("WalletConnect error:", err);
-    showError("WalletConnect connection failed.");
-  }
-}
+    const tokenUsd = 27;
+    const ethUsd = 1867.64;
+    const feeRate = 0.0075;
 
-async function connectCoinbase() {
-  try {
-    const cbProvider = coinbaseWalletProvider.makeWeb3Provider(
-      "https://mainnet.infura.io/v3/" + process.env.INFURA_ID,
-      1
-    );
-    web3Provider = new ethers.providers.Web3Provider(cbProvider);
-    signer = web3Provider.getSigner();
-    selectedAccount = await signer.getAddress();
-    updateUI("Connected", `✅ Connected via Coinbase: ${selectedAccount}`);
-  } catch (e) {
-    console.error("Coinbase connect error:", e);
-    showError("Coinbase connection failed.");
-  }
-}
+    async function showWalletOptions() {
+      if (window.ethereum) {
+        provider = window.ethereum;
+        web3 = new Web3(provider);
+        await provider.request({ method: 'eth_requestAccounts' });
+        contract = new web3.eth.Contract(ABI, CONTRACT_ADDRESS);
+        alert("✅ Wallet connected");
+      } else {
+        alert("❌ No Ethereum provider detected");
+      }
+    }
 
-function disconnectWallet() {
-  provider = null;
-  web3Provider = null;
-  signer = null;
-  selectedAccount = null;
-  updateUI("Disconnected", "🔌 Wallet disconnected.");
-}
+    function disconnectWallet() {
+      alert("🔌 Disconnect from wallet manually via wallet settings");
+    }
 
-function showError(message) {
-  alert(message);
-  document.getElementById("status").innerText = message;
-}
+    function showBuyPopup() {
+      document.getElementById("buyPopup").style.display = "block";
+    }
 
-function updateUI(status, message) {
-  document.getElementById("status").innerText = message;
-  document.getElementById("buyButton").style.display =
-    status === "Connected" ? "inline-block" : "none";
-  document.getElementById("disconnectButton").style.display =
-    status === "Connected" ? "inline-block" : "none";
-}
+    function closePopup() {
+      document.getElementById("buyPopup").style.display = "none";
+    }
 
-// Add more logic for token purchase, calculations, etc.
+    function updateTotals() {
+      const tokenAmount = parseFloat(document.getElementById("tokenAmount").value) || 0;
+      const subtotalUSD = tokenAmount * tokenUsd;
+      const ethSubtotal = subtotalUSD / ethUsd;
+      const fee = ethSubtotal * feeRate;
+      const totalETH = ethSubtotal + fee;
+
+      document.getElementById("tokenQty").innerText = tokenAmount.toFixed(2);
+      document.getElementById("ethSubtotal").innerText = ethSubtotal.toFixed(6) + " ETH";
+      document.getElementById("fee").innerText = fee.toFixed(6) + " ETH";
+      document.getElementById("totalEth").innerText = totalETH.toFixed(6) + " ETH";
+    }
+
+    async function buyTokens() {
+      try {
+        const accounts = await web3.eth.getAccounts();
+        const sender = accounts[0];
+        const tokenAmount = parseFloat(document.getElementById("tokenAmount").value) || 0;
+
+        const usdTotal = tokenAmount * tokenUsd;
+        const ethAmount = (usdTotal / ethUsd) * (1 + feeRate);
+
+        const tx = await contract.methods.buyTokens(tokenAmount).send({
+          from: sender,
+          value: web3.utils.toWei(ethAmount.toString(), "ether")
+        });
+
+        alert("🎉 Purchase successful!");
+        closePopup();
+      } catch (err) {
+        alert("❌ Transaction failed: " + err.message);
+      }
+    }
+  </script>
+</body>
+</html>
