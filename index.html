@@ -2,114 +2,45 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Reach Token • Wallet Portal</title>
+  <title>Reach Token • WalletConnect</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- 1) Web3Modal + WalletConnect + Web3.js -->
-  <script src="https://unpkg.com/web3@1.10.0/dist/web3.min.js"></script>
-  <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
-  <script src="https://unpkg.com/web3modal@1.9.12/dist/index.js"></script>
-
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background: #121212;
-      color: #eee;
-      font-family: Arial, sans-serif;
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      height: 100vh;
-    }
-    h1 { font-size: 2rem; margin-bottom: 0.5rem; color: #1e90ff; }
-    p  { margin-top: 0; margin-bottom: 2rem; }
-    button {
-      background: #1e90ff;
-      border: none;
-      color: #fff;
-      padding: 12px 24px;
-      font-size: 1rem;
-      border-radius: 999px;
-      cursor: pointer;
-      box-shadow: 0 0 12px rgba(30,144,255,0.6);
-      transition: transform 0.2s ease;
-    }
-    button:hover { transform: scale(1.05); }
-    #walletDisplay { margin-top: 1.5rem; word-break: break-all; }
-  </style>
+  <!-- 1) WalletConnect Modal v2 (IIFE build via jsDelivr) -->
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/modal@2.7.0/dist/index.iife.min.js"></script>
 </head>
-<body>
-
+<body style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#121212;color:#fff;font-family:sans-serif">
   <h1>Reach Token Portal</h1>
-  <p>Connect with MetaMask, WalletConnect, Coinbase Wallet &amp; more</p>
-
-  <button id="connectBtn">Connect Wallet</button>
-  <button id="disconnectBtn" style="display:none;">Disconnect</button>
-  <div id="walletDisplay"></div>
+  <button id="connectBtn" style="padding:12px 24px;font-size:1rem;border:none;border-radius:8px;background:#1e90ff;color:#fff;cursor:pointer;">
+    Connect Wallet
+  </button>
+  <p id="walletAddress" style="margin-top:20px;"></p>
 
   <script>
-    let web3Modal, provider, web3, accounts;
-
-    // Configure Web3Modal
-    const providerOptions = {
-      walletconnect: {
-        package: window.WalletConnectProvider.default,
-        options: {
-          infuraId: "YOUR_INFURA_PROJECT_ID" // ← replace with your Infura ID
-        }
+    // 2) Initialize the WalletConnect Modal
+    const modal = new window.WalletConnectModal.default({
+      projectId: "YOUR_WALLETCONNECT_PROJECT_ID", // ← get this from cloud.walletconnect.com
+      // optional metadata for your dApp
+      metadata: {
+        name: "Reach Token",
+        description: "Connect your wallet to Reach Token portal",
+        url: "https://9throbotics.github.io/reach-wallet/",
+        icons: ["https://9throbotics.github.io/reach-wallet/logo.png"]
       }
-      // (you can add more here, like coinbasewallet, torus, etc.)
-    };
-
-    window.addEventListener("load", () => {
-      web3Modal = new window.Web3Modal.default({
-        cacheProvider: false,
-        providerOptions
-      });
     });
 
-    const connectBtn    = document.getElementById("connectBtn");
-    const disconnectBtn = document.getElementById("disconnectBtn");
-    const walletDisplay = document.getElementById("walletDisplay");
-
-    async function onConnect() {
+    // 3) Button opens the full WalletConnect modal UI
+    document.getElementById("connectBtn").addEventListener("click", async () => {
       try {
-        provider = await web3Modal.connect();
-        web3     = new Web3(provider);
-
-        accounts = await web3.eth.getAccounts();
-        const address = accounts[0];
-
-        walletDisplay.innerHTML = `🔗 Connected: <strong>${address}</strong>`;
-        connectBtn.style.display    = "none";
-        disconnectBtn.style.display = "inline-block";
-
-        console.log("Connected account:", address);
-
-        // Optional: subscribe to accounts change
-        provider.on("accountsChanged", (accs) => {
-          if (accs.length === 0) return onDisconnect();
-          walletDisplay.innerHTML = `🔄 Switched: <strong>${accs[0]}</strong>`;
-        });
-      } catch (e) {
-        console.error("Connection error:", e);
+        const { uri, approval } = await modal.openModal();
+        const session = await approval();
+        // Grab the first EVM account
+        const address = session.namespaces.eip155.accounts[0].split(":")[2];
+        document.getElementById("walletAddress").innerText = `🔗 Connected: ${address}`;
+        console.log("WalletConnect session:", session);
+      } catch (err) {
+        console.error("Connection cancelled or failed:", err);
       }
-    }
-
-    function onDisconnect() {
-      if (provider && provider.close) {
-        provider.close(); // WalletConnect cleanup
-      }
-      walletDisplay.innerText = "⚠️ Disconnected";
-      connectBtn.style.display    = "inline-block";
-      disconnectBtn.style.display = "none";
-      console.log("Disconnected");
-    }
-
-    connectBtn.addEventListener("click", onConnect);
-    disconnectBtn.addEventListener("click", onDisconnect);
+    });
   </script>
 </body>
 </html>
