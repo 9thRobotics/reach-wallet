@@ -1,21 +1,32 @@
-import { createAppKit } from '@reown/appkit/react';
-import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
-import { walletConnect, coinbaseWallet, injected } from 'wagmi/connectors';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Reach Token Portal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-const connectors = [
-  walletConnect({ projectId, metadata, showQrModal: false }),
-  injected({ shimDisconnect: true }),
-  coinbaseWallet({ appName: metadata.name, appLogoUrl: metadata.icons[0] }),
-];
+  <!-- 1) Load the AppKit web component bundle -->
+  <script type="module">
+    import { AppKit } from 'https://cdn.reown.com/appkit@latest/appkit.esm.js';
 
-const wagmiAdapter = new WagmiAdapter({
-  connectors,
-  projectId,
-  networks,
-});
+    // 2) Initialize AppKit with your Cloud project
+    AppKit.init({
+      projectId: '7454c2bb-0804-43d4-aef3-584e6ac4b9f4',
+      // optional: restrict to EVM chains (eip155) or add others like 'solana','bip122'
+      networks: ['eip155'],
+    });
+  </script>
+</head>
+<body style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#121212;color:#fff;">
+  <h1>Reach Token Wallet</h1>
+  <p>Click below to connect via MetaMask, WalletConnect, Coinbase Wallet and more</p>
 
-createAppKit({
-  adapters: [wagmiAdapter],
-  projectId,
-  networks,
-});
+  <!-- 3) The single tag that renders your Connect button + modal -->
+  <appkit-button 
+    style="--ak-primary:#1E90FF;--ak-accent:#00C6FF;--ak-font-size:1rem;--ak-border-radius:999px;"
+  ></appkit-button>
+  
+  <!-- Optional: a button to switch networks -->
+  <!-- <appkit-network-button></appkit-network-button> -->
+</body>
+</html>
