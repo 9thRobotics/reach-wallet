@@ -1,32 +1,115 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Reach Token Portal</title>
+  <title>Reach Token • Wallet Portal</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- 1) Load the AppKit web component bundle -->
-  <script type="module">
-    import { AppKit } from 'https://cdn.reown.com/appkit@latest/appkit.esm.js';
+  <!-- 1) Web3Modal + WalletConnect + Web3.js -->
+  <script src="https://unpkg.com/web3@1.10.0/dist/web3.min.js"></script>
+  <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
+  <script src="https://unpkg.com/web3modal@1.9.12/dist/index.js"></script>
 
-    // 2) Initialize AppKit with your Cloud project
-    AppKit.init({
-      projectId: '7454c2bb-0804-43d4-aef3-584e6ac4b9f4',
-      // optional: restrict to EVM chains (eip155) or add others like 'solana','bip122'
-      networks: ['eip155'],
-    });
-  </script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #121212;
+      color: #eee;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      height: 100vh;
+    }
+    h1 { font-size: 2rem; margin-bottom: 0.5rem; color: #1e90ff; }
+    p  { margin-top: 0; margin-bottom: 2rem; }
+    button {
+      background: #1e90ff;
+      border: none;
+      color: #fff;
+      padding: 12px 24px;
+      font-size: 1rem;
+      border-radius: 999px;
+      cursor: pointer;
+      box-shadow: 0 0 12px rgba(30,144,255,0.6);
+      transition: transform 0.2s ease;
+    }
+    button:hover { transform: scale(1.05); }
+    #walletDisplay { margin-top: 1.5rem; word-break: break-all; }
+  </style>
 </head>
-<body style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#121212;color:#fff;">
-  <h1>Reach Token Wallet</h1>
-  <p>Click below to connect via MetaMask, WalletConnect, Coinbase Wallet and more</p>
+<body>
 
-  <!-- 3) The single tag that renders your Connect button + modal -->
-  <appkit-button 
-    style="--ak-primary:#1E90FF;--ak-accent:#00C6FF;--ak-font-size:1rem;--ak-border-radius:999px;"
-  ></appkit-button>
-  
-  <!-- Optional: a button to switch networks -->
-  <!-- <appkit-network-button></appkit-network-button> -->
+  <h1>Reach Token Portal</h1>
+  <p>Connect with MetaMask, WalletConnect, Coinbase Wallet &amp; more</p>
+
+  <button id="connectBtn">Connect Wallet</button>
+  <button id="disconnectBtn" style="display:none;">Disconnect</button>
+  <div id="walletDisplay"></div>
+
+  <script>
+    let web3Modal, provider, web3, accounts;
+
+    // Configure Web3Modal
+    const providerOptions = {
+      walletconnect: {
+        package: window.WalletConnectProvider.default,
+        options: {
+          infuraId: "YOUR_INFURA_PROJECT_ID" // ← replace with your Infura ID
+        }
+      }
+      // (you can add more here, like coinbasewallet, torus, etc.)
+    };
+
+    window.addEventListener("load", () => {
+      web3Modal = new window.Web3Modal.default({
+        cacheProvider: false,
+        providerOptions
+      });
+    });
+
+    const connectBtn    = document.getElementById("connectBtn");
+    const disconnectBtn = document.getElementById("disconnectBtn");
+    const walletDisplay = document.getElementById("walletDisplay");
+
+    async function onConnect() {
+      try {
+        provider = await web3Modal.connect();
+        web3     = new Web3(provider);
+
+        accounts = await web3.eth.getAccounts();
+        const address = accounts[0];
+
+        walletDisplay.innerHTML = `🔗 Connected: <strong>${address}</strong>`;
+        connectBtn.style.display    = "none";
+        disconnectBtn.style.display = "inline-block";
+
+        console.log("Connected account:", address);
+
+        // Optional: subscribe to accounts change
+        provider.on("accountsChanged", (accs) => {
+          if (accs.length === 0) return onDisconnect();
+          walletDisplay.innerHTML = `🔄 Switched: <strong>${accs[0]}</strong>`;
+        });
+      } catch (e) {
+        console.error("Connection error:", e);
+      }
+    }
+
+    function onDisconnect() {
+      if (provider && provider.close) {
+        provider.close(); // WalletConnect cleanup
+      }
+      walletDisplay.innerText = "⚠️ Disconnected";
+      connectBtn.style.display    = "inline-block";
+      disconnectBtn.style.display = "none";
+      console.log("Disconnected");
+    }
+
+    connectBtn.addEventListener("click", onConnect);
+    disconnectBtn.addEventListener("click", onDisconnect);
+  </script>
 </body>
 </html>
