@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Reach Token WalletConnect</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/modal@2.7.0/dist/index.iife.min.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/modal@2.7.0/dist/index.iife.min.js" defer></script>
   <style>
     body {
       background: #0d1117;
-      color: #ffffff;
+      color: #fff;
       font-family: Arial, sans-serif;
       display: flex;
       flex-direction: column;
@@ -16,11 +16,9 @@
       justify-content: center;
       height: 100vh;
       margin: 0;
-      text-align: center;
     }
     h1 {
       color: #1e90ff;
-      font-size: 2rem;
       margin-bottom: 20px;
     }
     button {
@@ -32,9 +30,6 @@
       border-radius: 8px;
       cursor: pointer;
       box-shadow: 0 0 10px #1e90ff;
-    }
-    button:hover {
-      background: #00c6ff;
     }
     #walletAddress {
       margin-top: 20px;
@@ -49,26 +44,37 @@
   <div id="walletAddress"></div>
 
   <script>
-    const modal = new window.WalletConnectModal.default({
-      projectId: "7b93ae72b2b1227b68183c7f13d8592d", // 🚀 This is a real working project ID (test safe)
-      metadata: {
-        name: "Reach Token",
-        description: "Access the Reach Token Portal",
-        url: "https://9throbotics.github.io/reach-wallet/",
-        icons: ["https://9throbotics.github.io/reach-wallet/logo.png"]
-      }
-    });
+    window.addEventListener("load", async () => {
+      const waitForWC = () => new Promise(resolve => {
+        const check = () => {
+          if (window.WalletConnectModal?.default) return resolve();
+          setTimeout(check, 100);
+        };
+        check();
+      });
 
-    document.getElementById("connectWallet").addEventListener("click", async () => {
-      try {
-        const { approval } = await modal.openModal();
-        const session = await approval();
-        const address = session.namespaces.eip155.accounts[0].split(":")[2];
-        document.getElementById("walletAddress").innerText = `🔗 Connected: ${address}`;
-        console.log("Connected to:", address);
-      } catch (err) {
-        console.warn("Modal closed or connection failed:", err);
-      }
+      await waitForWC(); // ensures modal is ready before proceeding
+
+      const modal = new window.WalletConnectModal.default({
+        projectId: "7b93ae72b2b1227b68183c7f13d8592d",
+        metadata: {
+          name: "Reach Token",
+          description: "Access the Reach Token Portal",
+          url: "https://9throbotics.github.io/reach-wallet/",
+          icons: ["https://9throbotics.github.io/reach-wallet/logo.png"]
+        }
+      });
+
+      document.getElementById("connectWallet").addEventListener("click", async () => {
+        try {
+          const { approval } = await modal.openModal();
+          const session = await approval();
+          const address = session.namespaces.eip155.accounts[0].split(":")[2];
+          document.getElementById("walletAddress").innerText = `🔗 Connected: ${address}`;
+        } catch (err) {
+          console.warn("User closed or error:", err.message || err);
+        }
+      });
     });
   </script>
 </body>
