@@ -46,23 +46,19 @@
   <div id="walletAddress"></div>
 
   <script>
-    // Wait until WalletConnect is ready
-    const waitForWalletConnect = () => {
-      return new Promise((resolve) => {
+    // Wait for WalletConnect to be available
+    const waitForWC = () =>
+      new Promise((resolve) => {
         const check = () => {
-          if (window.WalletConnectModal && window.WalletConnectModal.default) {
-            resolve();
-          } else {
-            setTimeout(check, 100);
-          }
+          if (window.WalletConnectModal?.default) return resolve();
+          setTimeout(check, 100);
         };
         check();
       });
-    };
 
-    waitForWalletConnect().then(() => {
+    waitForWC().then(() => {
       const modal = new window.WalletConnectModal.default({
-        projectId: "7b93ae72b2b1227b68183c7f13d8592d",
+        projectId: "7b93ae72b2b1227b68183c7f13d8592d", // ✅ Working test ID
         metadata: {
           name: "Reach Token",
           description: "Access the Reach Token Portal",
@@ -78,7 +74,7 @@
           const address = session.namespaces.eip155.accounts[0].split(":")[2];
           document.getElementById("walletAddress").innerText = `🔗 Connected: ${address}`;
         } catch (err) {
-          console.warn("User closed or connection failed:", err);
+          console.warn("User cancelled or connection failed:", err.message || err);
         }
       });
     });
