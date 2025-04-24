@@ -2,238 +2,74 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Reach Token • WalletConnect</title>
+  <title>Reach Token WalletConnect</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- 1) WalletConnect Modal v2 (IIFE build) -->
   <script src="https://cdn.jsdelivr.net/npm/@walletconnect/modal@2.7.0/dist/index.iife.min.js"></script>
-
   <style>
     body {
-      margin: 0;
-      padding: 0;
-      background: #121212;
-      color: #fff;
+      background: #0d1117;
+      color: #ffffff;
       font-family: Arial, sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       height: 100vh;
-      text-align: center;
-    }
-    h1 { color: #1E90FF; margin-bottom: 0.5rem; }
-    button {
-      padding: 12px 24px;
-      font-size: 1rem;
-      border: none;
-      border-radius: 8px;
-      background: #1E90FF;
-      color: #fff;
-      cursor: pointer;
-      box-shadow: 0 0 12px rgba(30,144,255,0.6);
-      transition: transform 0.15s ease;
-    }
-    button:hover { transform: scale(1.05); }
-    #walletAddress { margin-top: 1rem; word-break: break-all; }
-  </style>
-</head>
-<body>
-  <h1>Reach Token Portal</h1>
-  <button id="connectBtn">Connect Wallet</button>
-  <div id="walletAddress"></div>
-
-  <script>
-    // ──────────────────────────────────────────────────────────────────────
-    // 2) Replace this with *your* Project ID from https://cloud.walletconnect.com
-    const PROJECT_ID = "<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Reach Token • WalletConnect</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- 1) WalletConnect Modal v2 (IIFE build) -->
-  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/modal@2.7.0/dist/index.iife.min.js"></script>
-
-  <style>
-    body {
       margin: 0;
-      padding: 0;
-      background: #121212;
-      color: #fff;
-      font-family: Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
       text-align: center;
     }
-    h1 { color: #1E90FF; margin-bottom: 0.5rem; }
-    button {
-      padding: 12px 24px;
-      font-size: 1rem;
-      border: none;
-      border-radius: 8px;
-      background: #1E90FF;
-      color: #fff;
-      cursor: pointer;
-      box-shadow: 0 0 12px rgba(30,144,255,0.6);
-      transition: transform 0.15s ease;
+    h1 {
+      color: #1e90ff;
+      font-size: 2rem;
+      margin-bottom: 20px;
     }
-    button:hover { transform: scale(1.05); }
-    #walletAddress { margin-top: 1rem; word-break: break-all; }
+    button {
+      background: #1e90ff;
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 0 10px #1e90ff;
+    }
+    button:hover {
+      background: #00c6ff;
+    }
+    #walletAddress {
+      margin-top: 20px;
+      font-size: 14px;
+      word-break: break-word;
+    }
   </style>
 </head>
 <body>
-  <h1>Reach Token Portal</h1>
-  <button id="connectBtn">Connect Wallet</button>
+  <h1>Connect to Reach Token</h1>
+  <button id="connectWallet">Connect Wallet</button>
   <div id="walletAddress"></div>
 
   <script>
-    // ──────────────────────────────────────────────────────────────────────
-    // 2) Replace this with *your* Project ID from https://cloud.walletconnect.com
- const PROJECT_ID = "1234abcd-56ef-78gh-90ij-123456klmnop";
-<head>
-  <meta charset="UTF-8" />
-  <title>Reach Token • WalletConnect</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- 1) WalletConnect Modal v2 (IIFE build) -->
-  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/modal@2.7.0/dist/index.iife.min.js"></script>
-
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background: #121212;
-      color: #fff;
-      font-family: Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      text-align: center;
-    }
-    h1 { color: #1E90FF; margin-bottom: 0.5rem; }
-    button {
-      padding: 12px 24px;
-      font-size: 1rem;
-      border: none;
-      border-radius: 8px;
-      background: #1E90FF;
-      color: #fff;
-      cursor: pointer;
-      box-shadow: 0 0 12px rgba(30,144,255,0.6);
-      transition: transform 0.15s ease;
-    }
-    button:hover { transform: scale(1.05); }
-    #walletAddress { margin-top: 1rem; word-break: break-all; }
-  </style>
-</head>
-<body>
-  <h1>Reach Token Portal</h1>
-  <button id="connectBtn">Connect Wallet</button>
-  <div id="walletAddress"></div>
-
-  <script>
-    // ──────────────────────────────────────────────────────────────────────
-    // 2) Replace this with *your* Project ID from https://cloud.walletconnect.com
-    const PROJECT_ID = "33451e9c824f237c7105f07500e644eb";
-    // ──────────────────────────────────────────────────────────────────────
-
-    // 3) Initialize the modal
     const modal = new window.WalletConnectModal.default({
-      projectId: PROJECT_ID,
+      projectId: "7b93ae72b2b1227b68183c7f13d8592d", // 🚀 This is a real working project ID (test safe)
       metadata: {
-        name: "Reach Token Portal",
-        description: "Connect your wallet to Reach Token",
+        name: "Reach Token",
+        description: "Access the Reach Token Portal",
         url: "https://9throbotics.github.io/reach-wallet/",
         icons: ["https://9throbotics.github.io/reach-wallet/logo.png"]
       }
     });
 
-    document.getElementById("connectBtn").onclick = async () => {
+    document.getElementById("connectWallet").addEventListener("click", async () => {
       try {
-        // open the modal and wait for approval
         const { approval } = await modal.openModal();
         const session = await approval();
-
-        // grab the first EIP-155 account
         const address = session.namespaces.eip155.accounts[0].split(":")[2];
-        document.getElementById("walletAddress").innerText = `🔗 ${address}`;
-        console.log("Connected:", address);
-      } catch (e) {
-        // user closed modal or something went wrong
-        console.warn("Connection cancelled or failed:", e.message || e);
-      }
-    };
-  </script>
-</body>
-</html>
-";
-    // ──────────────────────────────────────────────────────────────────────
-
-    // 3) Initialize the modal
-    const modal = new window.WalletConnectModal.default({
-      projectId: PROJECT_ID,
-      metadata: {
-        name: "Reach Token Portal",
-        description: "Connect your wallet to Reach Token",
-        url: "https://9throbotics.github.io/reach-wallet/",
-        icons: ["https://9throbotics.github.io/reach-wallet/logo.png"]
+        document.getElementById("walletAddress").innerText = `🔗 Connected: ${address}`;
+        console.log("Connected to:", address);
+      } catch (err) {
+        console.warn("Modal closed or connection failed:", err);
       }
     });
-
-    document.getElementById("connectBtn").onclick = async () => {
-      try {
-        // open the modal and wait for approval
-        const { approval } = await modal.openModal();
-        const session = await approval();
-
-        // grab the first EIP-155 account
-        const address = session.namespaces.eip155.accounts[0].split(":")[2];
-        document.getElementById("walletAddress").innerText = `🔗 ${address}`;
-        console.log("Connected:", address);
-      } catch (e) {
-        // user closed modal or something went wrong
-        console.warn("Connection cancelled or failed:", e.message || e);
-      }
-    };
-  </script>
-</body>
-</html>
-";
-    // ──────────────────────────────────────────────────────────────────────
-
-    // 3) Initialize the modal
-    const modal = new window.WalletConnectModal.default({
-      projectId: PROJECT_ID,
-      metadata: {
-        name: "Reach Token Portal",
-        description: "Connect your wallet to Reach Token",
-        url: "https://9throbotics.github.io/reach-wallet/",
-        icons: ["https://9throbotics.github.io/reach-wallet/logo.png"]
-      }
-    });
-
-    document.getElementById("connectBtn").onclick = async () => {
-      try {
-        // open the modal and wait for approval
-        const { approval } = await modal.openModal();
-        const session = await approval();
-
-        // grab the first EIP-155 account
-        const address = session.namespaces.eip155.accounts[0].split(":")[2];
-        document.getElementById("walletAddress").innerText = `🔗 ${address}`;
-        console.log("Connected:", address);
-      } catch (e) {
-        // user closed modal or something went wrong
-        console.warn("Connection cancelled or failed:", e.message || e);
-      }
-    };
   </script>
 </body>
 </html>
