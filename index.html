@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <title>Reach Token WalletConnect</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/modal@2.7.0/dist/index.iife.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/modal@2.7.0/dist/index.iife.min.js"></script>
   <style>
     body {
       background: #0d1117;
@@ -33,9 +33,6 @@
       cursor: pointer;
       box-shadow: 0 0 10px #1e90ff;
     }
-    button:hover {
-      background: #00c6ff;
-    }
     #walletAddress {
       margin-top: 20px;
       font-size: 14px;
@@ -49,19 +46,23 @@
   <div id="walletAddress"></div>
 
   <script>
-    window.addEventListener("load", async () => {
-      const waitForWC = () => new Promise(resolve => {
+    // Wait until WalletConnect is ready
+    const waitForWalletConnect = () => {
+      return new Promise((resolve) => {
         const check = () => {
-          if (window.WalletConnectModal?.default) return resolve();
-          setTimeout(check, 100);
+          if (window.WalletConnectModal && window.WalletConnectModal.default) {
+            resolve();
+          } else {
+            setTimeout(check, 100);
+          }
         };
         check();
       });
+    };
 
-      await waitForWC(); // ensures modal is ready before proceeding
-
+    waitForWalletConnect().then(() => {
       const modal = new window.WalletConnectModal.default({
-        projectId: "7b93ae72b2b1227b68183c7f13d8592d", // Test Project ID
+        projectId: "7b93ae72b2b1227b68183c7f13d8592d",
         metadata: {
           name: "Reach Token",
           description: "Access the Reach Token Portal",
@@ -76,9 +77,8 @@
           const session = await approval();
           const address = session.namespaces.eip155.accounts[0].split(":")[2];
           document.getElementById("walletAddress").innerText = `🔗 Connected: ${address}`;
-          console.log("Connected to:", address);
         } catch (err) {
-          console.warn("Modal closed or connection failed:", err);
+          console.warn("User closed or connection failed:", err);
         }
       });
     });
