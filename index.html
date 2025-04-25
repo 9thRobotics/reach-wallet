@@ -4,7 +4,10 @@
   <meta charset="UTF-8" />
   <title>Reach Token WalletConnect</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/modal@2.7.0/dist/index.iife.min.js"></script>
+
+  <!-- ✅ Use WalletConnect Modal (UMD build that works reliably) -->
+  <script src="https://unpkg.com/@walletconnect/modal@2.7.0/dist/index.umd.js"></script>
+
   <style>
     body {
       background: #0d1117;
@@ -33,6 +36,9 @@
       cursor: pointer;
       box-shadow: 0 0 10px #1e90ff;
     }
+    button:hover {
+      background: #00c6ff;
+    }
     #walletAddress {
       margin-top: 20px;
       font-size: 14px;
@@ -46,37 +52,25 @@
   <div id="walletAddress"></div>
 
   <script>
-    // Wait for WalletConnect to be available
-    const waitForWC = () =>
-      new Promise((resolve) => {
-        const check = () => {
-          if (window.WalletConnectModal?.default) return resolve();
-          setTimeout(check, 100);
-        };
-        check();
-      });
+    const modal = new WalletConnectModal({
+      projectId: "7b93ae72b2b1227b68183c7f13d8592d",
+      metadata: {
+        name: "Reach Token",
+        description: "Access the Reach Token Portal",
+        url: "https://9throbotics.github.io/reach-wallet/",
+        icons: ["https://9throbotics.github.io/reach-wallet/logo.png"]
+      }
+    });
 
-    waitForWC().then(() => {
-      const modal = new window.WalletConnectModal.default({
-        projectId: "7b93ae72b2b1227b68183c7f13d8592d", // ✅ Working test ID
-        metadata: {
-          name: "Reach Token",
-          description: "Access the Reach Token Portal",
-          url: "https://9throbotics.github.io/reach-wallet/",
-          icons: ["https://9throbotics.github.io/reach-wallet/logo.png"]
-        }
-      });
-
-      document.getElementById("connectWallet").addEventListener("click", async () => {
-        try {
-          const { approval } = await modal.openModal();
-          const session = await approval();
-          const address = session.namespaces.eip155.accounts[0].split(":")[2];
-          document.getElementById("walletAddress").innerText = `🔗 Connected: ${address}`;
-        } catch (err) {
-          console.warn("User cancelled or connection failed:", err.message || err);
-        }
-      });
+    document.getElementById("connectWallet").addEventListener("click", async () => {
+      try {
+        const { approval } = await modal.openModal();
+        const session = await approval();
+        const address = session.namespaces.eip155.accounts[0].split(":")[2];
+        document.getElementById("walletAddress").innerText = `🔗 Connected: ${address}`;
+      } catch (err) {
+        console.warn("User cancelled or connection failed:", err);
+      }
     });
   </script>
 </body>
