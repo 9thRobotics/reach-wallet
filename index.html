@@ -70,6 +70,18 @@
         document.getElementById("walletAddress").innerText = `🔗 Connected: ${address}`;
       } catch (err) {
         console.warn("User cancelled or connection failed:", err);
+        document.getElementById("connectWallet").addEventListener("click", async () => {
+  try {
+    console.log("Opening WalletConnect modal...");
+    const { approval } = await modal.openModal();
+    console.log("Modal opened, awaiting approval...");
+    const session = await approval();
+    const address = session.namespaces.eip155.accounts[0].split(":")[2];
+    document.getElementById("walletAddress").innerText = `🔗 Connected: ${address}`;
+  } catch (err) {
+    console.warn("User cancelled or connection failed:", err);
+  }
+});
       }
     });
   </script>
