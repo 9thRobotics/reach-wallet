@@ -39,21 +39,32 @@
     button:hover {
       background: #00c6ff;
     }
+    button:focus {
+      outline: 2px solid #1e90ff;
+      outline-offset: 2px;
+    }
     #walletAddress {
       margin-top: 20px;
       font-size: 14px;
       word-break: break-word;
     }
+    .error {
+      color: #ff6347;
+      margin-top: 10px;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
   <h1>Connect to Reach Token</h1>
-  <button id="connectWallet">Connect Wallet</button>
+  <button id="connectWallet" aria-label="Connect your wallet">Connect Wallet</button>
   <div id="walletAddress"></div>
+  <div class="error" id="errorMessage"></div>
 
   <script>
+    // Initialize WalletConnect Modal
     const modal = new WalletConnectModal({
-      projectId: "7b93ae72b2b1227b68183c7f13d8592d",
+      projectId: "7b93ae72b2b1227b68183c7f13d8592d", // Consider moving to a config file or environment variable
       metadata: {
         name: "Reach Token",
         description: "Access the Reach Token Portal",
@@ -62,26 +73,36 @@
       }
     });
 
-    document.getElementById("connectWallet").addEventListener("click", async () => {
+    // Cache DOM elements for performance
+    const connectButton = document.getElementById("connectWallet");
+    const walletAddressDiv = document.getElementById("walletAddress");
+    const errorMessageDiv = document.getElementById("errorMessage");
+
+    // Handle WalletConnect
+    connectButton.addEventListener("click", async () => {
       try {
+        // Clear previous errors
+        errorMessageDiv.innerText = "";
+
+        // Open WalletConnect modal and get approval
+        console.log("Opening WalletConnect modal...");
         const { approval } = await modal.openModal();
+        console.log("Modal opened, awaiting approval...");
         const session = await approval();
-        const address = session.namespaces.eip155.accounts[0].split(":")[2];
-        document.getElementById("walletAddress").innerText = `🔗 Connected: ${address}`;
+
+        // Extract wallet address
+        if (!session || !session.namespaces.eip155 || !session.namespaces.eip155.accounts) {
+          throw new Error("Invalid session data");
+        }
+        const address = session.namespaces.eip155.accounts[0]?.split(":")[2] || "Unknown Address";
+
+        // Update UI with connected wallet address
+        walletAddressDiv.innerText = `🔗 Connected: ${address}`;
+        console.log("Wallet connected:", address);
       } catch (err) {
+        // Handle errors gracefully and show message to the user
         console.warn("User cancelled or connection failed:", err);
-        document.getElementById("connectWallet").addEventListener("click", async () => {
-          try {
-            console.log("Opening WalletConnect modal...");
-            const { approval } = await modal.openModal();
-            console.log("Modal opened, awaiting approval...");
-            const session = await approval();
-            const address = session.namespaces.eip155.accounts[0].split(":")[2];
-            document.getElementById("walletAddress").innerText = `🔗 Connected: ${address}`;
-          } catch (err) {
-            console.warn("User cancelled or connection failed:", err);
-          }
-        });
+        errorMessageDiv.innerText = "❌ Connection failed. Please try again.";
       }
     });
   </script>
