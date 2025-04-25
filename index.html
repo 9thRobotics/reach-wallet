@@ -5,8 +5,8 @@
   <title>Reach Token WalletConnect</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- ✅ WalletConnect Modal UMD -->
-  <script src="https://unpkg.com/@walletconnect/modal@2.7.0/dist/index.umd.js" onload="initWalletConnect()"></script>
+  <!-- ✅ Working WalletConnect Modal -->
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/modal@2.7.0/dist/index.iife.min.js"></script>
 
   <style>
     body {
@@ -58,12 +58,8 @@
   <div class="error" id="errorMessage"></div>
 
   <script>
-    function initWalletConnect() {
-      const WalletConnectModal = window.WalletConnectModal?.default || window.WalletConnectModal;
-      if (!WalletConnectModal) {
-        document.getElementById("errorMessage").innerText = "❌ WalletConnect failed to load.";
-        return;
-      }
+    window.addEventListener("DOMContentLoaded", () => {
+      const WalletConnectModal = window.WalletConnectModal.default;
 
       const modal = new WalletConnectModal({
         projectId: "7b93ae72b2b1227b68183c7f13d8592d",
@@ -93,7 +89,7 @@
           errorMessageDiv.innerText = "❌ Connection failed. Please try again.";
         }
       });
-    }
+    });
   </script>
 </body>
 </html>
