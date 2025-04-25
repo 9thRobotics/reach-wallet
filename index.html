@@ -58,38 +58,36 @@
   <div class="error" id="errorMessage"></div>
 
   <script>
-    window.addEventListener("DOMContentLoaded", () => {
-      const WalletConnectModal = window.WalletConnectModal.default;
-
-      const modal = new WalletConnectModal({
-        projectId: "7b93ae72b2b1227b68183c7f13d8592d",
-        metadata: {
-          name: "Reach Token",
-          description: "Access the Reach Token Portal",
-          url: "https://9throbotics.github.io/reach-wallet/",
-          icons: ["https://9throbotics.github.io/reach-wallet/logo.png"]
-        }
-      });
-
-      const connectButton = document.getElementById("connectWallet");
-      const walletAddressDiv = document.getElementById("walletAddress");
-      const errorMessageDiv = document.getElementById("errorMessage");
-
-      connectButton.addEventListener("click", async () => {
-        try {
-          errorMessageDiv.innerText = "";
-          const { approval } = await modal.openModal();
-          const session = await approval();
-
-          const address = session.namespaces.eip155.accounts[0]?.split(":")[2];
-          walletAddressDiv.innerText = `🔗 Connected: ${address}`;
-          console.log("Wallet connected:", address);
-        } catch (err) {
-          console.warn("Connection failed or cancelled:", err);
-          errorMessageDiv.innerText = "❌ Connection failed. Please try again.";
-        }
-      });
+   <script>
+  window.addEventListener("DOMContentLoaded", () => {
+    // ✅ Directly access the global without `.default`
+    const modal = new WalletConnectModal({
+      projectId: "7b93ae72b2b1227b68183c7f13d8592d",
+      metadata: {
+        name: "Reach Token",
+        description: "Access the Reach Token Portal",
+        url: "https://9throbotics.github.io/reach-wallet/",
+        icons: ["https://9throbotics.github.io/reach-wallet/logo.png"]
+      }
     });
-  </script>
-</body>
-</html>
+
+    const connectButton = document.getElementById("connectWallet");
+    const walletAddressDiv = document.getElementById("walletAddress");
+    const errorMessageDiv = document.getElementById("errorMessage");
+
+    connectButton.addEventListener("click", async () => {
+      try {
+        errorMessageDiv.innerText = "";
+        const { approval } = await modal.openModal();
+        const session = await approval();
+
+        const address = session.namespaces.eip155.accounts[0]?.split(":")[2];
+        walletAddressDiv.innerText = `🔗 Connected: ${address}`;
+        console.log("Wallet connected:", address);
+      } catch (err) {
+        console.warn("Connection failed or cancelled:", err);
+        errorMessageDiv.innerText = "❌ Connection failed. Please try again.";
+      }
+    });
+  });
+</script>
