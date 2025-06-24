@@ -2,92 +2,91 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Reach Token WalletConnect</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- ✅ Working WalletConnect Modal -->
-  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/modal@2.7.0/dist/index.iife.min.js"></script>
-
+  <title>Buy Reach 9D-RC Token</title>
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
   <style>
     body {
-      background: #0d1117;
-      color: #ffffff;
       font-family: Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      margin: 0;
       text-align: center;
-    }
-    h1 {
-      color: #1e90ff;
-      font-size: 2rem;
-      margin-bottom: 20px;
-    }
-    button {
-      background: #1e90ff;
+      background: #0a0a0a;
       color: white;
-      border: none;
-      padding: 14px 28px;
+      padding: 50px;
+    }
+    input, button {
+      padding: 10px;
+      margin: 10px;
       font-size: 16px;
-      border-radius: 8px;
-      cursor: pointer;
-      box-shadow: 0 0 10px #1e90ff;
     }
-    button:hover {
-      background: #00c6ff;
-    }
-    #walletAddress {
-      margin-top: 20px;
-      font-size: 14px;
-      word-break: break-word;
-    }
-    .error {
-      color: #ff6347;
-      margin-top: 10px;
-      font-size: 14px;
+    .connected {
+      color: #4caf50;
     }
   </style>
 </head>
 <body>
-  <h1>Connect to Reach Token</h1>
-  <button id="connectWallet" aria-label="Connect your wallet">Connect Wallet</button>
-  <div id="walletAddress"></div>
-  <div class="error" id="errorMessage"></div>
+  <h1>Buy Reach 9D-RC Token</h1>
+  <p>Fixed Price: <strong>$27.00</strong> per token</p>
+  <p>Contract: <code>0x0557aFA4318989702376D50B45547F953b7F9B21</code></p>
+
+  <button onclick="connectWallet()">Connect Wallet</button>
+  <div id="wallet-address"></div>
+
+  <input type="number" id="ethAmount" placeholder="Amount in ETH" step="0.01" />
+  <button onclick="buyTokens()">Buy Reach Token</button>
 
   <script>
-   <script>
-  window.addEventListener("DOMContentLoaded", () => {
-    // ✅ Directly access the global without `.default`
-    const modal = new WalletConnectModal({
-      projectId: "7b93ae72b2b1227b68183c7f13d8592d",
-      metadata: {
-        name: "Reach Token",
-        description: "Access the Reach Token Portal",
-        url: "https://9throbotics.github.io/reach-wallet/",
-        icons: ["https://9throbotics.github.io/reach-wallet/logo.png"]
+    const sellerContractAddress = "0x0557aFA4318989702376D50B45547F953b7F9B21";
+    const sellerABI = [
+      {
+        "inputs": [{ "internalType": "uint256", "name": "minTokens", "type": "uint256" }],
+        "name": "buyTokens",
+        "outputs": [],
+        "stateMutability": "payable",
+        "type": "function"
       }
-    });
+    ];
 
-    const connectButton = document.getElementById("connectWallet");
-    const walletAddressDiv = document.getElementById("walletAddress");
-    const errorMessageDiv = document.getElementById("errorMessage");
+    let web3;
+    let account;
+    let sellerContract;
 
-    connectButton.addEventListener("click", async () => {
+    async function connectWallet() {
+      if (window.ethereum) {
+        try {
+          await window.ethereum.request({ method: 'eth_requestAccounts' });
+          web3 = new Web3(window.ethereum);
+          const accounts = await web3.eth.getAccounts();
+          account = accounts[0];
+          document.getElementById('wallet-address').innerHTML =
+            "Connected: <span class='connected'>" + account + "</span>";
+          sellerContract = new web3.eth.Contract(sellerABI, sellerContractAddress);
+        } catch (error) {
+          alert("Wallet connection failed.");
+        }
+      } else {
+        alert("MetaMask or a Web3 wallet is required.");
+      }
+    }
+
+    async function buyTokens() {
+      const ethAmount = document.getElementById("ethAmount").value;
+      if (!account || !sellerContract || !ethAmount) {
+        alert("Make sure your wallet is connected and ETH amount is entered.");
+        return;
+      }
+
+      const ethInWei = web3.utils.toWei(ethAmount, "ether");
+
       try {
-        errorMessageDiv.innerText = "";
-        const { approval } = await modal.openModal();
-        const session = await approval();
-
-        const address = session.namespaces.eip155.accounts[0]?.split(":")[2];
-        walletAddressDiv.innerText = `🔗 Connected: ${address}`;
-        console.log("Wallet connected:", address);
+        await sellerContract.methods.buyTokens(0).send({
+          from: account,
+          value: ethInWei
+        });
+        alert("Purchase successful!");
       } catch (err) {
-        console.warn("Connection failed or cancelled:", err);
-        errorMessageDiv.innerText = "❌ Connection failed. Please try again.";
+        console.error(err);
+        alert("Transaction failed.");
       }
-    });
-  });
-</script>
+    }
+  </script>
+</body>
+</html>
