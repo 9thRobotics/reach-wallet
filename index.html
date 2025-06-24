@@ -25,12 +25,14 @@
 <body>
   <h1>Buy Reach 9D-RC Token</h1>
   <p>Fixed Price: <strong>$27.00</strong> per token</p>
-  <p>Contract: <code>0x0557aFA4318989702376D50B45547F953b7F9B21</code></p>
+  <p>Estimated at 1 ETH = $3,000</p>
+  <p><strong>1 Reach ≈ 0.009 ETH</strong></p>
 
   <button onclick="connectWallet()">Connect Wallet</button>
   <div id="wallet-address"></div>
 
-  <input type="number" id="ethAmount" placeholder="Amount in ETH" step="0.01" />
+  <input type="number" id="reachAmount" placeholder="Number of Reach tokens" step="1" min="1" />
+  <p id="ethEstimate">ETH Needed: 0</p>
   <button onclick="buyTokens()">Buy Reach Token</button>
 
   <script>
@@ -48,6 +50,8 @@
     let web3;
     let account;
     let sellerContract;
+
+    const pricePerReachInETH = 0.009; // Based on $27 at $3,000 ETH
 
     async function connectWallet() {
       if (window.ethereum) {
@@ -67,17 +71,24 @@
       }
     }
 
+    document.getElementById("reachAmount").addEventListener("input", () => {
+      const tokens = parseFloat(document.getElementById("reachAmount").value);
+      const ethEstimate = isNaN(tokens) ? 0 : tokens * pricePerReachInETH;
+      document.getElementById("ethEstimate").innerText = "ETH Needed: " + ethEstimate.toFixed(6);
+    });
+
     async function buyTokens() {
-      const ethAmount = document.getElementById("ethAmount").value;
-      if (!account || !sellerContract || !ethAmount) {
-        alert("Make sure your wallet is connected and ETH amount is entered.");
+      const reachAmount = parseFloat(document.getElementById("reachAmount").value);
+      if (!account || !sellerContract || !reachAmount || reachAmount <= 0) {
+        alert("Make sure wallet is connected and Reach amount is valid.");
         return;
       }
 
-      const ethInWei = web3.utils.toWei(ethAmount, "ether");
+      const ethAmount = reachAmount * pricePerReachInETH;
+      const ethInWei = web3.utils.toWei(ethAmount.toString(), "ether");
 
       try {
-        await sellerContract.methods.buyTokens(0).send({
+        await sellerContract.methods.buyTokens(reachAmount).send({
           from: account,
           value: ethInWei
         });
