@@ -3,14 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <title>Buy Reach 9D-RC Token</title>
-  <!-- Web3Modal v2 (with ethers.js) -->
-<script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
-      text-align: center;
       background: #0a0a0a;
       color: white;
+      text-align: center;
       padding: 50px;
     }
     input, button {
@@ -22,14 +20,18 @@
       color: #4caf50;
     }
   </style>
+
+  <!-- Ethers + Web3Modal -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
+  <script src="https://unpkg.com/web3modal@1.9.12/dist/index.js"></script>
 </head>
 <body>
   <h1>Buy Reach 9D-RC Token</h1>
-  <p>Fixed Price: <strong>$27.00</strong> per token</p>
-  <p>Estimated at 1 ETH = $3,000</p>
-  <p><strong>1 Reach ≈ 0.009 ETH</strong></p>
+  <p>Fixed Price: <strong>$27.00</strong> per token (≈ 0.009 ETH)</p>
+  <p>Contract: <code>0x0557aFA4318989702376D50B45547F953b7F9B21</code></p>
 
-  <button onclick="connectWallet()">Connect Wallet</button>
+  <button onclick="connectWallet()">🔗 Connect Wallet</button>
   <div id="wallet-address"></div>
 
   <input type="number" id="reachAmount" placeholder="Number of Reach tokens" step="1" min="1" />
@@ -37,7 +39,7 @@
   <button onclick="buyTokens()">Buy Reach Token</button>
 
   <script>
-    const sellerContractAddress = "0x0557aFA4318989702376D50B45547F953b7F9B21";
+    const sellerAddress = "0x0557aFA4318989702376D50B45547F953b7F9B21";
     const sellerABI = [
       {
         "inputs": [{ "internalType": "uint256", "name": "minTokens", "type": "uint256" }],
@@ -48,52 +50,63 @@
       }
     ];
 
-    let web3;
-    let account;
+    let provider;
+    let signer;
+    let walletAddress = "";
     let sellerContract;
 
-    const pricePerReachInETH = 0.009; // Based on $27 at $3,000 ETH
+    const pricePerReachETH = 0.009;
+
+    // WalletConnect provider options
+    const providerOptions = {
+      walletconnect: {
+        package: window.WalletConnectProvider.default,
+        options: {
+          infuraId: "63f289c3783f403aa722e9bda1b680aa" // Use your Infura ID
+        }
+      }
+    };
+
+    const web3Modal = new window.Web3Modal.default({
+      cacheProvider: false,
+      providerOptions
+    });
 
     async function connectWallet() {
-      if (window.ethereum) {
-        try {
-          await window.ethereum.request({ method: 'eth_requestAccounts' });
-          web3 = new Web3(window.ethereum);
-          const accounts = await web3.eth.getAccounts();
-          account = accounts[0];
-          document.getElementById('wallet-address').innerHTML =
-            "Connected: <span class='connected'>" + account + "</span>";
-          sellerContract = new web3.eth.Contract(sellerABI, sellerContractAddress);
-        } catch (error) {
-          alert("Wallet connection failed.");
-        }
-      } else {
-        alert("MetaMask or a Web3 wallet is required.");
+      try {
+        const instance = await web3Modal.connect();
+        provider = new ethers.providers.Web3Provider(instance);
+        signer = provider.getSigner();
+        walletAddress = await signer.getAddress();
+        document.getElementById("wallet-address").innerHTML = "Connected: <span class='connected'>" + walletAddress + "</span>";
+        sellerContract = new ethers.Contract(sellerAddress, sellerABI, signer);
+      } catch (error) {
+        console.error("Wallet connection failed", error);
+        alert("Wallet connection failed.");
       }
     }
 
     document.getElementById("reachAmount").addEventListener("input", () => {
       const tokens = parseFloat(document.getElementById("reachAmount").value);
-      const ethEstimate = isNaN(tokens) ? 0 : tokens * pricePerReachInETH;
+      const ethEstimate = isNaN(tokens) ? 0 : tokens * pricePerReachETH;
       document.getElementById("ethEstimate").innerText = "ETH Needed: " + ethEstimate.toFixed(6);
     });
 
     async function buyTokens() {
       const reachAmount = parseFloat(document.getElementById("reachAmount").value);
-      if (!account || !sellerContract || !reachAmount || reachAmount <= 0) {
-        alert("Make sure wallet is connected and Reach amount is valid.");
+      if (!signer || !reachAmount || reachAmount <= 0) {
+        alert("Enter a valid token amount and connect your wallet.");
         return;
       }
 
-      const ethAmount = reachAmount * pricePerReachInETH;
-      const ethInWei = web3.utils.toWei(ethAmount.toString(), "ether");
+      const ethValue = ethers.utils.parseEther((reachAmount * pricePerReachETH).toString());
 
       try {
-        await sellerContract.methods.buyTokens(reachAmount).send({
-          from: account,
-          value: ethInWei
+        const tx = await sellerContract.buyTokens(reachAmount, {
+          value: ethValue
         });
-        alert("Purchase successful!");
+        await tx.wait();
+        alert("Tokens purchased successfully!");
       } catch (err) {
         console.error(err);
         alert("Transaction failed.");
