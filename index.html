@@ -16,12 +16,15 @@
       margin: 10px;
       font-size: 16px;
     }
+    button {
+      cursor: pointer;
+    }
     .connected {
       color: #4caf50;
     }
   </style>
 
-  <!-- Ethers + Web3Modal -->
+  <!-- Ethers + WalletConnect + Web3Modal -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
   <script src="https://unpkg.com/web3modal@1.9.12/dist/index.js"></script>
@@ -54,22 +57,22 @@
     let signer;
     let walletAddress = "";
     let sellerContract;
-
     const pricePerReachETH = 0.009;
 
-    // WalletConnect provider options
     const providerOptions = {
       walletconnect: {
         package: window.WalletConnectProvider.default,
         options: {
-          infuraId: "63f289c3783f403aa722e9bda1b680aa" // Use your Infura ID
+          infuraId: "63f289c3783f403aa722e9bda1b680aa" // Your Infura Project ID
         }
       }
     };
 
     const web3Modal = new window.Web3Modal.default({
       cacheProvider: false,
-      providerOptions
+      providerOptions,
+      theme: "dark",
+      mobileLinks: ["metamask", "trust", "coinbase", "rainbow", "argent"]
     });
 
     async function connectWallet() {
@@ -78,7 +81,8 @@
         provider = new ethers.providers.Web3Provider(instance);
         signer = provider.getSigner();
         walletAddress = await signer.getAddress();
-        document.getElementById("wallet-address").innerHTML = "Connected: <span class='connected'>" + walletAddress + "</span>";
+        document.getElementById("wallet-address").innerHTML =
+          "Connected: <span class='connected'>" + walletAddress + "</span>";
         sellerContract = new ethers.Contract(sellerAddress, sellerABI, signer);
       } catch (error) {
         console.error("Wallet connection failed", error);
