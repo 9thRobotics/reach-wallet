@@ -22,6 +22,13 @@
     .connected {
       color: #4caf50;
     }
+    code {
+      font-size: 0.9em;
+      background: #222;
+      padding: 4px 8px;
+      border-radius: 6px;
+      display: inline-block;
+    }
   </style>
 
   <!-- Ethers + WalletConnect + Web3Modal -->
@@ -32,7 +39,6 @@
 <body>
   <h1>Buy Reach 9D-RC Token</h1>
   <p>Fixed Price: <strong>$27.00</strong> per token (≈ 0.009 ETH)</p>
-  <p>Contract: <code>0x0557aFA4318989702376D50B45547F953b7F9B21</code></p>
 
   <button onclick="connectWallet()">🔗 Connect Wallet</button>
   <div id="wallet-address"></div>
@@ -41,8 +47,20 @@
   <p id="ethEstimate">ETH Needed: 0</p>
   <button onclick="buyTokens()">Buy Reach Token</button>
 
+  <br /><br />
+  <p>Official Reach Token Contract:</p>
+  <p>
+    <code id="token-address">0x41A61CdCf40a074546423Bae987B81733F3FBAc5</code><br />
+    <a href="https://etherscan.io/token/0x41A61CdCf40a074546423Bae987B81733F3FBAc5" target="_blank" style="color: #4caf50;">View on Etherscan</a>
+  </p>
+  <button onclick="addToken()">➕ Add to MetaMask</button>
+
   <script>
-    const sellerAddress = "0x0557aFA4318989702376D50B45547F953b7F9B21";
+    const sellerAddress = "0x0557aFA4318989702376D50B45547F953b7F9B21"; // seller contract
+    const tokenAddress = "0x41A61CdCf40a074546423Bae987B81733F3FBAc5"; // token contract
+    const tokenSymbol = "9D-RC";
+    const tokenDecimals = 18;
+
     const sellerABI = [
       {
         "inputs": [{ "internalType": "uint256", "name": "minTokens", "type": "uint256" }],
@@ -63,7 +81,7 @@
       walletconnect: {
         package: window.WalletConnectProvider.default,
         options: {
-          infuraId: "63f289c3783f403aa722e9bda1b680aa" // Your Infura Project ID
+          infuraId: "63f289c3783f403aa722e9bda1b680aa"
         }
       }
     };
@@ -114,6 +132,28 @@
       } catch (err) {
         console.error(err);
         alert("Transaction failed.");
+      }
+    }
+
+    async function addToken() {
+      if (window.ethereum) {
+        try {
+          await window.ethereum.request({
+            method: 'wallet_watchAsset',
+            params: {
+              type: 'ERC20',
+              options: {
+                address: tokenAddress,
+                symbol: tokenSymbol,
+                decimals: tokenDecimals,
+              }
+            }
+          });
+        } catch (error) {
+          console.error("Token add failed", error);
+        }
+      } else {
+        alert("MetaMask is required to add the token.");
       }
     }
   </script>
