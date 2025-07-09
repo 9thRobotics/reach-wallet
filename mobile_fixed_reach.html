@@ -1,42 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Buy Reach Token (Mobile)</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Buy Reach Tokens</title>
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 </head>
-<body style="font-family:sans-serif; text-align:center; padding:20px">
+<body style="font-family: sans-serif; text-align: center; padding: 20px;">
   <h2>Buy Reach 9D‑RC Tokens</h2>
-  
-  <button id="connectBtn" style="padding:10px 20px; margin-bottom:10px;">🔌 Connect Wallet</button>
-  <div id="walletStatus" style="margin-bottom:20px; font-weight:bold;"></div>
+  <button id="connectBtn" style="padding: 10px 20px; margin-bottom: 10px;">Connect Wallet</button>
+  <div id="walletStatus" style="margin-bottom: 20px;"></div>
 
-  <input type="number" id="reachAmount" placeholder="Enter # of Reach" style="padding:10px; width:90%; max-width:300px;" />
-  <div id="ethNeeded" style="margin:10px;">ETH Needed: 0</div>
+  <input type="number" id="reachAmount" placeholder="Amount of Reach" step="1" min="1"
+         style="padding: 10px; width: 90%; max-width: 300px;">
+  <div id="ethNeeded" style="margin: 10px;">ETH Needed: 0</div>
+  <button id="buyBtn" style="padding: 10px 20px;">Buy Reach</button>
 
-  <button id="buyBtn" style="padding:10px 20px;">🛒 Buy Reach</button>
+  <div id="txStatus" style="margin-top: 20px; color: green;"></div>
 
-  <div id="txStatus" style="margin-top:20px; color:green;"></div>
+  <!-- Mobile redirect logic -->
+  <script>
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const hasEthereum = typeof window.ethereum !== "undefined";
+    if (isMobile && !hasEthereum) {
+      alert("Please open this page inside MetaMask or Trust Wallet browser.");
+      window.location.href = "https://metamask.app.link/dapp/9throbotics.github.io/reach-wallet/mobile_fixed_reach.html";
+    }
+  </script>
 
   <script>
     const SELLER = "0x0557aFA4318989702376D50B45547F953b7F9B21";
-    const REACH_PRICE_ETH = 0.009; // 1 Reach = ~$27 (if ETH ~ $3000)
+    const REACH_PRICE_ETH = 0.009;
 
     let provider, signer, contract;
 
     async function connectWallet() {
-      if (typeof window.ethereum === 'undefined') {
-        alert('MetaMask or wallet not found. Use MetaMask browser.');
+      if (!window.ethereum) {
+        alert("MetaMask not found — use the in-app browser.");
         return;
       }
-
       provider = new ethers.providers.Web3Provider(window.ethereum);
       await provider.send("eth_requestAccounts", []);
       signer = provider.getSigner();
       const addr = await signer.getAddress();
       document.getElementById("walletStatus").innerText = "Connected: " + addr;
-
       contract = new ethers.Contract(
         SELLER,
         ["function buyTokens(uint256 minTokens) payable"],
@@ -47,26 +54,26 @@
     document.getElementById("connectBtn").onclick = connectWallet;
 
     document.getElementById("reachAmount").oninput = function() {
-      const tokens = parseFloat(this.value);
-      const eth = isNaN(tokens) ? 0 : tokens * REACH_PRICE_ETH;
+      const amt = parseFloat(this.value);
+      const eth = isNaN(amt) ? 0 : amt * REACH_PRICE_ETH;
       document.getElementById("ethNeeded").innerText = `ETH Needed: ${eth.toFixed(6)}`;
     };
 
     document.getElementById("buyBtn").onclick = async function() {
-      if (!contract) return alert("Connect your wallet first.");
-      const tokens = parseFloat(document.getElementById("reachAmount").value);
-      if (!tokens || tokens <= 0) return alert("Enter a valid amount.");
-      const ethValue = (tokens * REACH_PRICE_ETH).toString();
+      if (!contract) return alert("Connect wallet first");
+      const amt = parseFloat(document.getElementById("reachAmount").value);
+      if (!amt || amt < 1) return alert("Enter a valid amount");
+      const ethValue = (amt * REACH_PRICE_ETH).toString();
       try {
-        const tx = await contract.buyTokens(tokens, {
+        const tx = await contract.buyTokens(amt, {
           value: ethers.utils.parseEther(ethValue)
         });
-        document.getElementById("txStatus").innerText = "Waiting for confirmation...";
+        document.getElementById("txStatus").innerText = "Waiting confirmation...";
         await tx.wait();
-        document.getElementById("txStatus").innerText = "✅ Purchase complete!";
-      } catch (err) {
-        console.error(err);
-        document.getElementById("txStatus").innerText = "❌ Transaction failed.";
+        document.getElementById("txStatus").innerText = "Purchase complete!";
+      } catch (e) {
+        console.error(e);
+        document.getElementById("txStatus").innerText = "Transaction failed.";
       }
     };
   </script>
