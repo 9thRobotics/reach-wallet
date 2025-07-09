@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Reach 9D-RC Buy/Sell</title>
+</head>
+<body>
+  <h2>Buy / Sell Reach 9D-RC Tokens</h2>
+  <button id="connectBtn">Connect Wallet</button>
+  <div id="walletAddress" style="margin: 10px 0;"></div>
+
+  <div>
+    <input type="number" id="tokenAmount" placeholder="Amount of ETH to spend">
+    <button id="buyBtn">Buy Tokens</button>
+  </div>
+
+  <div style="margin-top:20px;">
+    <input type="number" id="sellAmount" placeholder="Amount of Tokens to sell">
+    <button id="sellBtn">Sell Tokens</button>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <script>
+    const tokenSellerAddress = "0x0557aFA4318989702376D50B45547F953b7F9B21";
+    const tokenAddress = "0x41A61CdCf40a074546423Bae987B81733F3FBAc5";
+
+    let provider, signer, contract;
+
+    const abi = [
+      "function buyTokens(uint256 minTokens) payable",
+      "function sellTokens(uint256 amount)",
+      "function approve(address spender, uint256 amount) external returns (bool)",
+      "function allowance(address owner, address spender) external view returns (uint256)"
+    ];
+
+    async function connectWallet() {
+      if (typeof window.ethereum !== 'undefined') {
+        provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+        await provider.send("eth_requestAccounts", []);
+        signer = provider.getSigner();
+        const address = await signer.getAddress();
+        document.getElementById('walletAddress').innerText = "Connected: " + address;
+        contract = new ethers.Contract(tokenSellerAddress, abi, signer);
+      } else {
+        alert('Please install MetaMask to continue.');
+      }
+    }
+
+    async function buyTokens() {
+      const ethAmount = document.getElementById('tokenAmount').value;
+      if (!ethAmount) return alert('Enter ETH amount.');
+      const tx = await contract.buyTokens(0, { value: ethers.utils.parseEther(ethAmount) });
+      await tx.wait();
+      alert('Purchase Complete!');
+    }
+
+    async function sellTokens() {
+      const tokenAmount = document.getElementById('sellAmount').value;
+      if (!tokenAmount) return alert('Enter token amount to sell.');
+
+      const tokenContract = new ethers.Contract(tokenAddress, abi, signer);
+      const decimals = 18;
+      const amountInWei = ethers.utils.parseUnits(tokenAmount, decimals);
+
+      const currentAllowance = await tokenContract.allowance(await signer.getAddress(), tokenSellerAddress);
+      if (currentAllowance.lt(amountInWei)) {
+        const approvalTx = await tokenContract.approve(tokenSellerAddress, amountInWei);
+        await approvalTx.wait();
+      }
+
+      const sellTx = await contract.sellTokens(amountInWei);
+      await sellTx.wait();
+      alert('Sell Complete!');
+    }
+
+    document.getElementById('connectBtn').onclick = connectWallet;
+    document.getElementById('buyBtn').onclick = buyTokens;
+    document.getElementById('sellBtn').onclick = sellTokens;
+  </script>
+</body>
+</html>
