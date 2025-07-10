@@ -2,21 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Buy & Sell Reach 9D-RC Token</title>
+  <title>Buy Reach 9D-RC Token</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       background: #0a0a0a;
       color: white;
       text-align: center;
-      padding: 40px;
+      padding: 50px;
     }
     input, button {
       padding: 10px;
       margin: 10px;
       font-size: 16px;
-      width: 90%;
-      max-width: 300px;
     }
     button {
       cursor: pointer;
@@ -30,10 +28,6 @@
       border-radius: 6px;
       display: inline-block;
     }
-    #status {
-      font-size: 0.9rem;
-      margin-top: 10px;
-    }
   </style>
 
   <!-- Dependencies -->
@@ -42,21 +36,15 @@
   <script src="https://unpkg.com/web3modal@1.9.12/dist/index.js"></script>
 </head>
 <body>
-  <h1>Buy & Sell Reach 9D-RC Token</h1>
+  <h1>Buy Reach 9D-RC Token</h1>
   <p>Fixed Price: <strong>$27.00</strong> per token (≈ 0.009 ETH)</p>
 
   <button onclick="connectWallet()">🔗 Connect Wallet</button>
   <div id="wallet-address"></div>
 
-  <!-- BUY -->
-  <input type="number" id="buyAmt" placeholder="ETH to spend" step="0.001" min="0.001" />
+  <input type="number" id="reachAmount" placeholder="Number of Reach tokens" step="1" min="1" />
+  <p id="ethEstimate">ETH Needed: 0</p>
   <button onclick="buyTokens()">Buy Reach Token</button>
-
-  <!-- SELL -->
-  <input type="number" id="sellAmt" placeholder="Reach tokens to sell" step="1" min="1" />
-  <button onclick="sellTokens()">Sell Reach Token</button>
-
-  <p id="status"></p>
 
   <p>Official Reach Token Contract:</p>
   <p>
@@ -66,21 +54,22 @@
   <button onclick="addToken()">➕ Add to MetaMask</button>
 
   <script>
-    const SELLER = "0x0557aFA4318989702376D50B45547F953b7F9B21";
-    const TOKEN  = "0x41A61CdCf40a074546423Bae987B81733F3FBAc5";
+    const sellerAddress = "0x0557aFA4318989702376D50B45547F953b7F9B21";
+    const tokenAddress = "0x41A61CdCf40a074546423Bae987B81733F3FBAc5";
     const tokenSymbol = "9D-RC";
     const tokenDecimals = 18;
     const pricePerReachETH = 0.009;
 
-    let provider, signer;
+    let provider, signer, sellerContract;
 
-    const tokenAbi = [
-      "function approve(address spender, uint256 amount) external returns (bool)",
-      "function decimals() external view returns (uint8)"
-    ];
-    const sellerAbi = [
-      "function buyTokens(uint256 minTokens) payable",
-      "function sellTokens(uint256 tokenAmount, uint256 minEth)"
+    const sellerABI = [
+      {
+        "inputs": [{ "internalType": "uint256", "name": "minTokens", "type": "uint256" }],
+        "name": "buyTokens",
+        "outputs": [],
+        "stateMutability": "payable",
+        "type": "function"
+      }
     ];
 
     const providerOptions = {
@@ -99,63 +88,50 @@
       mobileLinks: ["metamask", "trust", "coinbase", "rainbow"]
     });
 
-    function status(msg, ok = false) {
-      const s = document.getElementById("status");
-      s.innerText = msg;
-      s.style.color = ok ? "#4caf50" : "#e74c3c";
-    }
-
     async function connectWallet() {
       try {
         const instance = await web3Modal.connect();
+
         provider = new ethers.providers.Web3Provider(instance);
         signer = provider.getSigner();
+
         const address = await signer.getAddress();
+        console.log("Connected:", address);
         document.getElementById("wallet-address").innerHTML =
           "Connected: <span class='connected'>" + address + "</span>";
+
+        sellerContract = new ethers.Contract(sellerAddress, sellerABI, signer);
       } catch (err) {
         console.error("Wallet connection failed:", err);
-        status("Connection failed");
+        alert("Wallet connection failed. Please try again.");
       }
     }
+
+    document.getElementById("reachAmount").addEventListener("input", () => {
+      const tokens = parseFloat(document.getElementById("reachAmount").value);
+      const ethEstimate = isNaN(tokens) ? 0 : tokens * pricePerReachETH;
+      document.getElementById("ethEstimate").innerText = "ETH Needed: " + ethEstimate.toFixed(6);
+    });
 
     async function buyTokens() {
       try {
-        if (!signer) return status("Connect wallet first");
-        const ethIn = parseFloat(document.getElementById("buyAmt").value);
-        if (!ethIn || ethIn <= 0) return status("Enter ETH amount");
-        status("Buying…");
+        const reachAmount = parseFloat(document.getElementById("reachAmount").value);
+        if (!signer || !reachAmount || reachAmount <= 0) {
+          alert("Enter a valid token amount and connect your wallet.");
+          return;
+        }
 
-        const seller = new ethers.Contract(SELLER, sellerAbi, signer);
-        const tx = await seller.buyTokens(0, { value: ethers.utils.parseEther(ethIn.toString()) });
+        const ethValue = ethers.utils.parseEther((reachAmount * pricePerReachETH).toString());
+        const tx = await sellerContract.buyTokens(reachAmount, {
+          value: ethValue
+        });
+
+        console.log("Transaction sent:", tx.hash);
         await tx.wait();
-        status("✅ Bought Reach!", true);
+        alert("Tokens purchased successfully!");
       } catch (err) {
-        console.error(err);
-        status("Transaction failed");
-      }
-    }
-
-    async function sellTokens() {
-      try {
-        if (!signer) return status("Connect wallet first");
-        const amount = parseFloat(document.getElementById("sellAmt").value);
-        if (!amount || amount <= 0) return status("Enter Reach amount");
-
-        const token  = new ethers.Contract(TOKEN, tokenAbi, signer);
-        const seller = new ethers.Contract(SELLER, sellerAbi, signer);
-        const decimals = await token.decimals();
-        const tokenAmount = ethers.utils.parseUnits(amount.toString(), decimals);
-
-        status("Approving…");
-        await (await token.approve(SELLER, tokenAmount)).wait();
-
-        status("Selling…");
-        await (await seller.sellTokens(tokenAmount, 0)).wait();
-        status("✅ Sold Reach!", true);
-      } catch (err) {
-        console.error(err);
-        status("Transaction failed");
+        console.error("Buy failed:", err);
+        alert("Transaction failed. Check your wallet.");
       }
     }
 
@@ -167,9 +143,9 @@
             params: {
               type: 'ERC20',
               options: {
-                address: TOKEN,
+                address: tokenAddress,
                 symbol: tokenSymbol,
-                decimals: tokenDecimals
+                decimals: tokenDecimals,
               }
             }
           });
