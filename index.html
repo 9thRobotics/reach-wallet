@@ -96,7 +96,7 @@
         signer = provider.getSigner();
 
         const address = await signer.getAddress();
-        console.log("Connected:", address);
+        console.log("✅ Connected:", address);
         document.getElementById("wallet-address").innerHTML =
           "Connected: <span class='connected'>" + address + "</span>";
 
@@ -122,16 +122,31 @@
         }
 
         const ethValue = ethers.utils.parseEther((reachAmount * pricePerReachETH).toString());
+
+        const network = await provider.getNetwork();
+        const userAddress = await signer.getAddress();
+
+        console.log("📥 Preparing to send transaction...");
+        console.log("➡️ Wallet:", userAddress);
+        console.log("🌐 Network:", network.name, "(Chain ID:", network.chainId + ")");
+        console.log("🔢 Tokens to buy:", reachAmount);
+        console.log("💸 ETH to send:", ethValue.toString());
+
         const tx = await sellerContract.buyTokens(reachAmount, {
-          value: ethValue
+          value: ethValue,
+          gasLimit: 250000
         });
 
-        console.log("Transaction sent:", tx.hash);
+        console.log("⏳ Transaction sent:", tx.hash);
         await tx.wait();
-        alert("Tokens purchased successfully!");
+        alert("✅ Tokens purchased successfully!");
       } catch (err) {
-        console.error("Buy failed:", err);
-        alert("Transaction failed. Check your wallet.");
+        console.error("❌ Transaction Failed:", {
+          message: err.message,
+          code: err.code,
+          data: err.data
+        });
+        alert("⚠️ Transaction failed: " + err.message);
       }
     }
 
