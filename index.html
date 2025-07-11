@@ -109,7 +109,8 @@
 
     document.getElementById("reachAmount").addEventListener("input", () => {
       const tokens = parseFloat(document.getElementById("reachAmount").value);
-      const ethEstimate = isNaN(tokens) ? 0 : tokens * pricePerReachETH;
+      const bufferMultiplier = 1.01;
+      const ethEstimate = isNaN(tokens) ? 0 : tokens * pricePerReachETH * bufferMultiplier;
       document.getElementById("ethEstimate").innerText = "ETH Needed: " + ethEstimate.toFixed(6);
     });
 
@@ -121,7 +122,11 @@
           return;
         }
 
-        const ethValue = ethers.utils.parseEther((reachAmount * pricePerReachETH).toString());
+        const bufferMultiplier = 1.01; // Add 1% buffer to cover minor gas or rounding errors
+        const ethNeeded = reachAmount * pricePerReachETH * bufferMultiplier;
+        const ethValue = ethers.utils.parseEther(ethNeeded.toFixed(6));
+
+        console.log(`Buying ${reachAmount} token(s) for ${ethNeeded.toFixed(6)} ETH (with buffer)`);
 
         const network = await provider.getNetwork();
         const userAddress = await signer.getAddress();
@@ -134,19 +139,15 @@
 
         const tx = await sellerContract.buyTokens(reachAmount, {
           value: ethValue,
-          gasLimit: 250000
+          gasLimit: 300000 // You can increase if needed
         });
 
         console.log("⏳ Transaction sent:", tx.hash);
         await tx.wait();
         alert("✅ Tokens purchased successfully!");
       } catch (err) {
-        console.error("❌ Transaction Failed:", {
-          message: err.message,
-          code: err.code,
-          data: err.data
-        });
-        alert("⚠️ Transaction failed: " + err.message);
+        console.error("❌ Transaction Failed:", err);
+        alert("⚠️ Transaction failed: " + (err.data?.message || err.message));
       }
     }
 
