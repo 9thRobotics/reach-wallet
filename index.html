@@ -1,102 +1,79 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Buy Reach 9D‑RC Token</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <title>Reach Token Wallet Connect</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    body{font-family:Arial,Helvetica,sans-serif;background:#0a0a0a;color:#fff;text-align:center;padding:40px}
-    input,button{padding:10px;margin:10px;font-size:16px;width:90%;max-width:340px}
-    button{cursor:pointer}
-    #buyBtn[disabled]{opacity:.6;cursor:not-allowed}
-    .connected{color:#4caf50}
-    code{background:#222;padding:5px 10px;border-radius:6px;display:inline-block}
+    body {
+      background-color: #0a0a0a;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 40px;
+    }
+
+    button {
+      font-size: 18px;
+      padding: 12px 24px;
+      margin: 20px;
+      background-color: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    .status {
+      margin-top: 20px;
+      font-size: 16px;
+    }
   </style>
-  <!-- libs -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-  <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
-  <script src="https://unpkg.com/web3modal@1.9.12/dist/index.js"></script>
 </head>
 <body>
-  <h1>Buy Reach 9D‑RC Token</h1>
-  <p>Fixed price: <strong>$27</strong> (≈ 0.009 ETH) per token</p>
 
-  <button id="connectBtn" onclick="connectWallet()">🔗 Connect Wallet</button>
-  <div id="wallet-address"></div>
+  <h1>Reach 9D‑RC Token</h1>
+  <button onclick="connectWallet()">Connect Wallet</button>
+  <div class="status" id="walletStatus">Wallet not connected</div>
 
-  <input id="reachAmt" type="number" placeholder="Number of tokens" min="1" step="1">
-  <p id="ethNeed">ETH Needed: 0</p>
-  <button id="buyBtn" onclick="buyTokens()" disabled>Buy Reach Token</button>
+  <!-- Load libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <script src="https://unpkg.com/web3modal@1.9.5/dist/index.js"></script>
 
-  <p>Token contract:</p>
-  <code>0x41A61CdCf40a074546423Bae987B81733F3FBAc5</code><br>
-  <a style="color:#4caf50" target="_blank" href="https://etherscan.io/token/0x41A61CdCf40a074546423Bae987B81733F3FBAc5">View on Etherscan</a><br><br>
-  <button onclick="addToken()">➕ Add to MetaMask</button>
+  <script>
+    let web3Modal;
+    let provider;
+    let signer;
 
-<script>
-/* CONSTANTS */
-const rawAddress = "0x0557AFA4318989702376D50B45547F953b7F9B21";
-const sellerAddress = ethers.utils.getAddress(rawAddress);
-const TOKEN_ADDR  = "0x41A61CdCf40a074546423Bae987B81733F3FBAc5";
-const TOKEN_SYM   = "9D-RC";
-const TOKEN_DEC   = 18;
-const PRICE_ETH   = 0.009;
+    async function init() {
+      const providerOptions = {}; // Add WalletConnect or others here if needed
 
-/* ABIs */
-const sellerABI=[{"inputs":[{"internalType":"uint256","name":"minTokens","type":"uint256"}],"name":"buyTokens","outputs":[],"stateMutability":"payable","type":"function"}];
+      web3Modal = new window.Web3Modal.default({
+        cacheProvider: false,
+        providerOptions
+      });
+    }
 
-/* Web3Modal */
-let web3Modal;
-const providerOpts={walletconnect:{package:window.WalletConnectProvider.default,options:{infuraId:"63f289c3783f403aa722e9bda1b680aa"}}};
-window.addEventListener('load',()=>{
-  web3Modal=new window.Web3Modal.default({cacheProvider:true,providerOptions:providerOpts,theme:"dark"});
-  if(web3Modal.cachedProvider){connectWallet();}
-});
+    async function connectWallet() {
+      try {
+        const instance = await web3Modal.connect();
+        provider = new ethers.providers.Web3Provider(instance);
+        signer = provider.getSigner();
+        const address = await signer.getAddress();
+        document.getElementById('walletStatus').innerText = "Connected: " + address;
+        console.log("Connected:", address);
+      } catch (err) {
+        console.error("Connection failed:", err);
+        document.getElementById('walletStatus').innerText = "Connection failed";
+      }
+    }
 
-/* globals */
-let provider,signer,sellerContract;
-
-async function connectWallet(){
-  try{
-    const instance=await web3Modal.connect();
-    provider=new ethers.providers.Web3Provider(instance);
-    signer=provider.getSigner();
-    const addr=await signer.getAddress();
-    document.getElementById('wallet-address').innerHTML=`Connected: <span class="connected">${addr}</span>`;
-    sellerContract=new ethers.Contract(SELLER_ADDR,sellerABI,signer);
-    document.getElementById('buyBtn').disabled=false;
-    document.getElementById('connectBtn').innerText='✅ Connected';
-  }catch(e){console.error('Connect error',e);alert('Wallet connection failed.');}
-}
-
-/* estimate */
-const amtInput=document.getElementById('reachAmt');
-amtInput.addEventListener('input',()=>{
-  const n=parseFloat(amtInput.value)||0;
-  document.getElementById('ethNeed').innerText='ETH Needed: '+(n*PRICE_ETH).toFixed(6);
-});
-
-/* BUY */
-async function buyTokens(){
-  try{
-    if(!sellerContract){await connectWallet();if(!sellerContract)return;}
-    const n=parseFloat(amtInput.value);
-    if(!n||n<=0){return alert('Enter token amount');}
-    const ethVal=ethers.utils.parseEther((n*PRICE_ETH).toString());
-    // send minTokens=0 to avoid slippage revert
-    const tx=await sellerContract.buyTokens(0,{value:ethVal,gasLimit:300000});
-    console.log('tx',tx.hash);
-    await tx.wait();
-    alert('✅ Purchase successful!');
-  }catch(err){console.error('Buy failed',err);alert('Transaction failed: '+(err.error?.message||err.message));}
-}
-
-/* add token */
-async function addToken(){
-  if(!window.ethereum)return alert('MetaMask required');
-  try{await ethereum.request({method:'wallet_watchAsset',params:{type:'ERC20',options:{address:TOKEN_ADDR,symbol:TOKEN_SYM,decimals:TOKEN_DEC}}});}
-  catch(e){console.error('add token error',e);}
-}
-</script>
+    // Initialize when the page is loaded
+    window.addEventListener('load', init);
+  </script>
 </body>
 </html>
