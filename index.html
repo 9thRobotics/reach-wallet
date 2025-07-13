@@ -9,7 +9,7 @@
       background: #0a0a0a;
       color: white;
       text-align: center;
-      padding: 40px;
+      padding: 50px;
     }
     input, button {
       padding: 10px;
@@ -29,6 +29,8 @@
       display: inline-block;
     }
   </style>
+
+  <!-- Dependencies -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
   <script src="https://unpkg.com/web3modal@1.9.12/dist/index.js"></script>
@@ -52,7 +54,7 @@
   <button onclick="addToken()">➕ Add to MetaMask</button>
 
   <script>
-    const sellerAddress = "0x0557AFA4318989702376D50B45547F953b7F9B21";
+    const sellerAddress = "0x0557AFA4318989702376D50B45547F953b7F9B21"; // ✅ correct case
     const tokenAddress = "0x41A61CdCf40a074546423Bae987B81733F3FBAc5";
     const tokenSymbol = "9D-RC";
     const tokenDecimals = 18;
@@ -89,12 +91,19 @@
     async function connectWallet() {
       try {
         const instance = await web3Modal.connect();
+
         provider = new ethers.providers.Web3Provider(instance);
         signer = provider.getSigner();
+
         const address = await signer.getAddress();
         document.getElementById("wallet-address").innerHTML =
           "Connected: <span class='connected'>" + address + "</span>";
-        sellerContract = new ethers.Contract(sellerAddress, sellerABI, signer);
+
+        sellerContract = new ethers.Contract(
+          ethers.utils.getAddress(sellerAddress), // 💡 force checksummed
+          sellerABI,
+          signer
+        );
       } catch (err) {
         console.error("Wallet connection failed:", err);
         alert("Wallet connection failed. Please try again.");
@@ -115,16 +124,9 @@
           return;
         }
 
-        const tokenAmount = ethers.BigNumber.from(reachAmount.toString());
         const ethValue = ethers.utils.parseEther((reachAmount * pricePerReachETH).toString());
-
-        console.log("Sending buyTokens transaction...");
-        console.log("Token amount:", tokenAmount.toString());
-        console.log("ETH value:", ethValue.toString());
-
-        const tx = await sellerContract.buyTokens(tokenAmount, {
-          value: ethValue,
-          gasLimit: 300000 // Adjust if needed
+        const tx = await sellerContract.buyTokens(reachAmount, {
+          value: ethValue
         });
 
         console.log("Transaction sent:", tx.hash);
@@ -132,7 +134,7 @@
         alert("Tokens purchased successfully!");
       } catch (err) {
         console.error("Buy failed:", err);
-        alert("Transaction failed. Check console for details.");
+        alert("Transaction failed. Check your wallet or gas settings.");
       }
     }
 
