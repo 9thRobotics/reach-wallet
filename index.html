@@ -35,7 +35,8 @@
 
 <script>
 /* CONSTANTS */
-const SELLER_ADDR = "0x0557Afa4318989702376d50B45547F953B7f9b21"; // checksummed
+const rawAddress = "0x0557AFA4318989702376D50B45547F953b7F9B21";
+const sellerAddress = ethers.utils.getAddress(rawAddress);
 const TOKEN_ADDR  = "0x41A61CdCf40a074546423Bae987B81733F3FBAc5";
 const TOKEN_SYM   = "9D-RC";
 const TOKEN_DEC   = 18;
