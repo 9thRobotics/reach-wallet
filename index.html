@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8" />
   <title>Buy Reach 9D-RC Token</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -55,7 +54,11 @@
   <button onclick="addToken()">➕ Add to MetaMask</button>
 
   <script>
-    const sellerAddress = "0x0557aFA4318989702376D50B45547F953b7F9B21";
+    // FIX: Proper checksummed address
+    const sellerAddress = ethers.utils.getAddress(
+      "0x0557aFA4318989702376D50B45547F953b7F9B21".toLowerCase()
+    );
+
     const tokenAddress = "0x41A61CdCf40a074546423Bae987B81733F3FBAc5";
     const tokenSymbol = "9D-RC";
     const tokenDecimals = 18;
@@ -94,8 +97,8 @@
         const instance = await web3Modal.connect();
         provider = new ethers.providers.Web3Provider(instance);
         signer = provider.getSigner();
-        const address = await signer.getAddress();
 
+        const address = await signer.getAddress();
         console.log("Connected:", address);
         document.getElementById("wallet-address").innerHTML =
           "Connected: <span class='connected'>" + address + "</span>";
@@ -121,11 +124,7 @@
           return;
         }
 
-        const ethValue = ethers.utils.parseUnits(
-          (reachAmount * pricePerReachETH).toFixed(18),
-          "ether"
-        );
-
+        const ethValue = ethers.utils.parseEther((reachAmount * pricePerReachETH).toString());
         const tx = await sellerContract.buyTokens(reachAmount, {
           value: ethValue
         });
@@ -135,7 +134,7 @@
         alert("Tokens purchased successfully!");
       } catch (err) {
         console.error("Buy failed:", err);
-        alert("Transaction failed: " + (err.data?.message || err.message || "Check wallet and ETH."));
+        alert("Transaction failed. Check your wallet.");
       }
     }
 
@@ -159,13 +158,6 @@
       } else {
         alert("MetaMask is required to add the token.");
       }
-    }
-
-    // Extra debug
-    if (window.ethereum) {
-      window.ethereum.on("connect", (info) => {
-        console.log("Connected to network:", info);
-      });
     }
   </script>
 </body>
