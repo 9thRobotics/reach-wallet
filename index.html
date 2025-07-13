@@ -91,15 +91,11 @@
     async function connectWallet() {
       try {
         const instance = await web3Modal.connect();
-
         provider = new ethers.providers.Web3Provider(instance);
         signer = provider.getSigner();
-
         const address = await signer.getAddress();
-        console.log("✅ Connected:", address);
         document.getElementById("wallet-address").innerHTML =
           "Connected: <span class='connected'>" + address + "</span>";
-
         sellerContract = new ethers.Contract(sellerAddress, sellerABI, signer);
       } catch (err) {
         console.error("Wallet connection failed:", err);
@@ -109,8 +105,7 @@
 
     document.getElementById("reachAmount").addEventListener("input", () => {
       const tokens = parseFloat(document.getElementById("reachAmount").value);
-      const bufferMultiplier = 1.01;
-      const ethEstimate = isNaN(tokens) ? 0 : tokens * pricePerReachETH * bufferMultiplier;
+      const ethEstimate = isNaN(tokens) ? 0 : tokens * pricePerReachETH;
       document.getElementById("ethEstimate").innerText = "ETH Needed: " + ethEstimate.toFixed(6);
     });
 
@@ -122,32 +117,18 @@
           return;
         }
 
-        const bufferMultiplier = 1.01; // Add 1% buffer to cover minor gas or rounding errors
-        const ethNeeded = reachAmount * pricePerReachETH * bufferMultiplier;
-        const ethValue = ethers.utils.parseEther(ethNeeded.toFixed(6));
-
-        console.log(`Buying ${reachAmount} token(s) for ${ethNeeded.toFixed(6)} ETH (with buffer)`);
-
-        const network = await provider.getNetwork();
-        const userAddress = await signer.getAddress();
-
-        console.log("📥 Preparing to send transaction...");
-        console.log("➡️ Wallet:", userAddress);
-        console.log("🌐 Network:", network.name, "(Chain ID:", network.chainId + ")");
-        console.log("🔢 Tokens to buy:", reachAmount);
-        console.log("💸 ETH to send:", ethValue.toString());
-
+        const ethValue = ethers.utils.parseEther((reachAmount * pricePerReachETH).toFixed(6));
         const tx = await sellerContract.buyTokens(reachAmount, {
           value: ethValue,
-          gasLimit: 300000 // You can increase if needed
+          gasLimit: 300000 // Prevent micro gas failures
         });
 
-        console.log("⏳ Transaction sent:", tx.hash);
+        console.log("Transaction sent:", tx.hash);
         await tx.wait();
-        alert("✅ Tokens purchased successfully!");
+        alert("Tokens purchased successfully!");
       } catch (err) {
-        console.error("❌ Transaction Failed:", err);
-        alert("⚠️ Transaction failed: " + (err.data?.message || err.message));
+        console.error("Transaction failed:", err);
+        alert("Transaction failed: " + (err?.data?.message || err.message || "unknown error"));
       }
     }
 
