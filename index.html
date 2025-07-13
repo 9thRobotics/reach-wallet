@@ -3,12 +3,32 @@
 <head>
   <meta charset="UTF-8" />
   <title>Buy Reach 9D-RC Token</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body {font-family: Arial, sans-serif;background:#0a0a0a;color:#fff;text-align:center;padding:50px;}
-    input,button{padding:10px;margin:10px;font-size:16px;}
-    button{cursor:pointer}
-    .connected{color:#4caf50}
-    code{background:#222;padding:5px 10px;border-radius:6px;display:inline-block;}
+    body {
+      font-family: Arial, sans-serif;
+      background: #0a0a0a;
+      color: white;
+      text-align: center;
+      padding: 50px;
+    }
+    input, button {
+      padding: 10px;
+      margin: 10px;
+      font-size: 16px;
+    }
+    button {
+      cursor: pointer;
+    }
+    .connected {
+      color: #4caf50;
+    }
+    code {
+      background: #222;
+      padding: 5px 10px;
+      border-radius: 6px;
+      display: inline-block;
+    }
   </style>
 
   <!-- Dependencies -->
@@ -29,104 +49,123 @@
 
   <p>Official Reach Token Contract:</p>
   <p>
-    <code>0x41A61CdCf40a074546423Bae987B81733F3FBAc5</code><br/>
-    <a href="https://etherscan.io/token/0x41A61CdCf40a074546423Bae987B81733F3FBAc5" target="_blank" style="color:#4caf50;">View on Etherscan</a>
+    <code>0x41A61CdCf40a074546423Bae987B81733F3FBAc5</code><br />
+    <a href="https://etherscan.io/token/0x41A61CdCf40a074546423Bae987B81733F3FBAc5" target="_blank" style="color: #4caf50;">View on Etherscan</a>
   </p>
   <button onclick="addToken()">➕ Add to MetaMask</button>
 
   <script>
-    /* ─────────────────────────────────────────────
-       Correct-checksum addresses with ethers.js
-    ───────────────────────────────────────────── */
-    const sellerAddress  = ethers.utils.getAddress("0x0557aFA4318989702376D50B45547F953b7F9B21".toLowerCase());
-    const tokenAddress   = ethers.utils.getAddress("0x41A61CdCf40a074546423Bae987B81733F3FBAc5".toLowerCase());
+    const sellerAddress = "0x0557aFA4318989702376D50B45547F953b7F9B21";
+    const tokenAddress = "0x41A61CdCf40a074546423Bae987B81733F3FBAc5";
+    const tokenSymbol = "9D-RC";
+    const tokenDecimals = 18;
+    const pricePerReachETH = 0.009;
 
-    const tokenSymbol    = "9D-RC";
-    const tokenDecimals  = 18;
-    const pricePerReach  = 0.009;            // ETH per token
-
-    /* ABIs */
-    const sellerABI = [
-      { "inputs":[{"internalType":"uint256","name":"minTokens","type":"uint256"}],
-        "name":"buyTokens","outputs":[],"stateMutability":"payable","type":"function" }
-    ];
-
-    /* Web3Modal */
-    const providerOptions = {
-      walletconnect:{
-        package:window.WalletConnectProvider.default,
-        options:{ infuraId:"63f289c3783f403aa722e9bda1b680aa" }
-      }
-    };
-    const web3Modal = new window.Web3Modal.default({
-      cacheProvider:false,
-      providerOptions,
-      theme:"dark",
-      mobileLinks:["metamask","trust","coinbase","rainbow"]
-    });
-
-    /* Globals */
     let provider, signer, sellerContract;
 
-    /* Connect Wallet */
-    async function connectWallet(){
-      try{
-        const instance = await web3Modal.connect();
-        provider      = new ethers.providers.Web3Provider(instance);
-        signer        = provider.getSigner();
-        const addr    = await signer.getAddress();
-        document.getElementById("wallet-address").innerHTML =
-          `Connected: <span class='connected'>${addr}</span>`;
-        sellerContract = new ethers.Contract(sellerAddress, sellerABI, signer);
-      }catch(err){
-        console.error("Wallet connect error:",err);
-        alert("Wallet connection failed.");
+    const sellerABI = [
+      {
+        "inputs": [{ "internalType": "uint256", "name": "minTokens", "type": "uint256" }],
+        "name": "buyTokens",
+        "outputs": [],
+        "stateMutability": "payable",
+        "type": "function"
       }
-    }
+    ];
 
-    /* Update ETH estimate live */
-    document.getElementById("reachAmount").addEventListener("input",()=>{
-      const t = parseFloat(document.getElementById("reachAmount").value||"0");
-      document.getElementById("ethEstimate").innerText = "ETH Needed: "+
-        (t*pricePerReach).toFixed(6);
+    const providerOptions = {
+      walletconnect: {
+        package: window.WalletConnectProvider.default,
+        options: {
+          infuraId: "63f289c3783f403aa722e9bda1b680aa"
+        }
+      }
+    };
+
+    const web3Modal = new window.Web3Modal.default({
+      cacheProvider: false,
+      providerOptions,
+      theme: "dark",
+      mobileLinks: ["metamask", "trust", "coinbase", "rainbow"]
     });
 
-    /* Buy Tokens */
-    async function buyTokens(){
-      try{
-        const num = parseFloat(document.getElementById("reachAmount").value);
-        if(!signer||!num||num<=0){ alert("Enter amount & connect wallet."); return; }
+    async function connectWallet() {
+      try {
+        const instance = await web3Modal.connect();
+        provider = new ethers.providers.Web3Provider(instance);
+        signer = provider.getSigner();
+        const address = await signer.getAddress();
 
-        // 1% buffer for micro-fee rounding
-        const ethNeeded = num * pricePerReach * 1.01;
-        const ethValue  = ethers.utils.parseEther(ethNeeded.toFixed(6));
+        console.log("Connected:", address);
+        document.getElementById("wallet-address").innerHTML =
+          "Connected: <span class='connected'>" + address + "</span>";
 
-        console.log(`Buying ${num} token(s) → sending ${ethNeeded.toFixed(6)} ETH`);
-        const tx = await sellerContract.buyTokens(num,{
-          value: ethValue,
-          gasLimit: 300000
-        });
-        console.log("Tx hash:",tx.hash);
-        await tx.wait();
-        alert("✅ Purchase complete!");
-      }catch(err){
-        console.error("❌ Tx failed:",err);
-        alert("Transaction failed: "+(err.data?.message||err.message));
+        sellerContract = new ethers.Contract(sellerAddress, sellerABI, signer);
+      } catch (err) {
+        console.error("Wallet connection failed:", err);
+        alert("Wallet connection failed. Please try again.");
       }
     }
 
-    /* Add token to MetaMask */
-    async function addToken(){
-      if(!window.ethereum){ alert("MetaMask required."); return; }
-      try{
-        await window.ethereum.request({
-          method:"wallet_watchAsset",
-          params:{
-            type:"ERC20",
-            options:{ address:tokenAddress,symbol:tokenSymbol,decimals:tokenDecimals }
-          }
+    document.getElementById("reachAmount").addEventListener("input", () => {
+      const tokens = parseFloat(document.getElementById("reachAmount").value);
+      const ethEstimate = isNaN(tokens) ? 0 : tokens * pricePerReachETH;
+      document.getElementById("ethEstimate").innerText = "ETH Needed: " + ethEstimate.toFixed(6);
+    });
+
+    async function buyTokens() {
+      try {
+        const reachAmount = parseFloat(document.getElementById("reachAmount").value);
+        if (!signer || !reachAmount || reachAmount <= 0) {
+          alert("Enter a valid token amount and connect your wallet.");
+          return;
+        }
+
+        const ethValue = ethers.utils.parseUnits(
+          (reachAmount * pricePerReachETH).toFixed(18),
+          "ether"
+        );
+
+        const tx = await sellerContract.buyTokens(reachAmount, {
+          value: ethValue
         });
-      }catch(err){ console.error("Add token error:",err); }
+
+        console.log("Transaction sent:", tx.hash);
+        await tx.wait();
+        alert("Tokens purchased successfully!");
+      } catch (err) {
+        console.error("Buy failed:", err);
+        alert("Transaction failed: " + (err.data?.message || err.message || "Check wallet and ETH."));
+      }
+    }
+
+    async function addToken() {
+      if (window.ethereum) {
+        try {
+          await window.ethereum.request({
+            method: 'wallet_watchAsset',
+            params: {
+              type: 'ERC20',
+              options: {
+                address: tokenAddress,
+                symbol: tokenSymbol,
+                decimals: tokenDecimals,
+              }
+            }
+          });
+        } catch (error) {
+          console.error("Add token failed:", error);
+        }
+      } else {
+        alert("MetaMask is required to add the token.");
+      }
+    }
+
+    // Extra debug
+    if (window.ethereum) {
+      window.ethereum.on("connect", (info) => {
+        console.log("Connected to network:", info);
+      });
     }
   </script>
 </body>
