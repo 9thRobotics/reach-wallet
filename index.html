@@ -11,7 +11,6 @@
     button,input{font-size:16px;padding:12px 20px;margin:10px;border-radius:8px}
     button{cursor:pointer;background:#4caf50;border:none;color:#fff}
     button:hover{background:#45a049}
-    #buySection{display:none;border-top:1px solid #333;padding-top:30px;margin-top:20px}
     .status{margin-top:10px;font-size:14px}
     .warn{color:#ff9800}
     .error{color:#f44336}
@@ -33,20 +32,33 @@
     <div id="txStatus" class="status"></div>
   </div>
 
+  <!-- 3️⃣ Balance display -->
+  <div id="balanceSection" style="margin-top:30px; display:none;">
+    <h2>Your Reach 9D-RC Balance</h2>
+    <div id="balance" class="status">–</div>
+    <button onclick="refreshBalance()">Refresh Balance</button>
+  </div>
+
   <!-- libs -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <script src="https://unpkg.com/web3modal@1.9.5/dist/index.js"></script>
 
   <script>
-  /************  CONFIG – update only if your addresses change  ************/
+  /************  CONFIG  ************/
   const SELLER_ADDRESS   = "0x0557aFA4318989702376D50B45547F953b7F9B21";
-  const CHAINLINK_FEED   = "0x694AA1769357215DE4FAC081bf1f309aDC325306"; // ETH/USD Sepolia → change if on mainnet
-  const TOKEN_FLOOR_USD  = 27;           // $27 floor price
-  const TOKEN_DECIMALS   = 18;           // Reach token decimals
-  const NETWORK_ID       = 11155111;     // 1 = mainnet, 11155111 = Sepolia, etc.
-  /*************************************************************************/
+  const CHAINLINK_FEED   = "0x694AA1769357215DE4FAC081bf1f309aDC325306"; // Sepolia ETH/USD
+  const TOKEN_FLOOR_USD  = 27;
+  const TOKEN_DECIMALS   = 18;
+  const NETWORK_ID       = 11155111;
 
-  // --- Minimal ABIs -------------------------------------------------------
+  // ==== NEW: ERC-20 Token config ====
+  const TOKEN_ADDRESS = "YOUR_TOKEN_CONTRACT_ADDRESS"; // <== REPLACE THIS!
+  const TOKEN_ABI = [
+    {"constant":true,"inputs":[{"name":"account","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"type":"function"},
+    {"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"type":"function"}
+  ];
+  /************************************/
+
   const SELLER_ABI = [
     {"inputs":[{"internalType":"uint256","name":"minTokens","type":"uint256"}],"name":"buyTokens","outputs":[],"stateMutability":"payable","type":"function"}
   ];
@@ -59,21 +71,19 @@
       {"internalType":"uint80","name":"answeredInRound","type":"uint80"}],
      "stateMutability":"view","type":"function"}
   ];
-  // -----------------------------------------------------------------------
 
   let web3Modal, externalProvider, provider, signer, userAddress;
   let sellerContract, feedContract, ethPriceUsd = null;
+  let tokenContract, tokenDecimals = TOKEN_DECIMALS;
 
-  /* ---------- Initialise Web3Modal ---------- */
   async function init() {
     web3Modal = new window.Web3Modal.default({cacheProvider:false,providerOptions:{}});
   }
   window.addEventListener("load", init);
 
-  /* ---------- Connect / Disconnect ---------- */
   async function toggleConnection() {
-    if (!signer) { await connectWallet(); }
-    else         { await disconnectWallet(); }
+    if (!signer) await connectWallet();
+    else         await disconnectWallet();
   }
 
   async function connectWallet() {
@@ -91,16 +101,16 @@
       document.getElementById("walletStatus").textContent = `Connected: ${userAddress}`;
       document.getElementById("connectBtn").textContent   = "Disconnect Wallet";
 
-      // Contracts (read w/ signer so we can send tx)
-      sellerContract  = new ethers.Contract(SELLER_ADDRESS, SELLER_ABI, signer);
-      feedContract    = new ethers.Contract(CHAINLINK_FEED, FEED_ABI, provider);
+      sellerContract = new ethers.Contract(SELLER_ADDRESS, SELLER_ABI, signer);
+      feedContract   = new ethers.Contract(CHAINLINK_FEED, FEED_ABI, provider);
+      tokenContract  = new ethers.Contract(TOKEN_ADDRESS, TOKEN_ABI, provider);
 
-      // Show Buy section
-      document.getElementById("buySection").style.display = "block";
-
-      // Fetch price + hook input
       await updatePrice();
       document.getElementById("ethAmount").addEventListener("input", updateEstimate);
+
+      // Show balance section and load balance
+      document.getElementById("balanceSection").style.display = "block";
+      refreshBalance();
     } catch(err) {
       console.error(err);
       document.getElementById("walletStatus").textContent = "Connection failed";
@@ -112,23 +122,21 @@
     signer = provider = externalProvider = null;
     document.getElementById("walletStatus").textContent = "Wallet disconnected";
     document.getElementById("connectBtn").textContent   = "Connect Wallet";
-    document.getElementById("buySection").style.display = "none";
     document.getElementById("ethAmount").value = "";
     document.getElementById("estimate").textContent = "Enter ETH amount to see estimate";
     document.getElementById("txStatus").textContent = "";
+    document.getElementById("balanceSection").style.display = "none";
+    document.getElementById("balance").textContent = "–";
   }
 
-  /* ---------- Price & Estimate ---------- */
   async function updatePrice() {
     try {
       const data = await feedContract.latestRoundData();
-      // Chainlink returns 8-decimals; convert to regular USD
       ethPriceUsd = Number(data.answer) / 1e8;
       updateEstimate();
     } catch(err) {
-      console.warn("Could not fetch Chainlink price:", err);
-      document.getElementById("estimate").textContent =
-        "Price feed unavailable – estimate disabled";
+      console.warn("Chainlink price error:", err);
+      document.getElementById("estimate").textContent = "Price unavailable – estimate off";
     }
   }
 
@@ -144,31 +152,50 @@
       `≈ ${tokens.toLocaleString(undefined,{maximumFractionDigits:2})} Reach 9D-RC`;
   }
 
-  /* ---------- Buy Tokens ---------- */
   async function buyTokens() {
     try {
       const ethInput = parseFloat(document.getElementById("ethAmount").value);
-      if (!ethInput || ethInput <= 0)
-        return alert("Enter a valid ETH amount first.");
+      if (!ethInput || ethInput <= 0) return alert("Enter a valid ETH amount.");
 
-      // Convert values
       const ethWei     = ethers.utils.parseEther(ethInput.toString());
       const estTokens  = ethPriceUsd ? (ethInput * ethPriceUsd) / TOKEN_FLOOR_USD : 0;
       const minTokens  = ethers.utils.parseUnits(Math.floor(estTokens).toString(), TOKEN_DECIMALS);
 
-      // Send tx
       const tx = await sellerContract.buyTokens(minTokens, { value: ethWei });
       document.getElementById("txStatus").textContent = "Waiting for confirmation…";
       await tx.wait();
       document.getElementById("txStatus").textContent = "✅ Purchase confirmed!";
-      document.getElementById("ethAmount").value      = "";
+      document.getElementById("ethAmount").value = "";
       updateEstimate();
+      refreshBalance();
     } catch(err) {
       console.error(err);
       document.getElementById("txStatus").textContent =
         `❌ Failed: ${err.reason || err.message || err}`;
     }
   }
+
+  // ==== NEW: Token balance fetch ====
+  async function refreshBalance() {
+    try {
+      if (!tokenContract || !userAddress) {
+        document.getElementById("balance").textContent = "–";
+        return;
+      }
+      // Get decimals (if not already)
+      if (!tokenDecimals) {
+        tokenDecimals = await tokenContract.decimals();
+      }
+      const bal = await tokenContract.balanceOf(userAddress);
+      const formatted = ethers.utils.formatUnits(bal, tokenDecimals);
+      document.getElementById("balance").textContent =
+        `${Number(formatted).toLocaleString(undefined,{maximumFractionDigits:4})} Reach 9D-RC`;
+    } catch (err) {
+      document.getElementById("balance").textContent = "Unable to fetch balance";
+    }
+  }
+  // ================================
+
   </script>
 </body>
 </html>
