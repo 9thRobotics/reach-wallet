@@ -62,7 +62,7 @@ async function connectWallet(){
     provider=new ethers.providers.Web3Provider(instance);
     signer=provider.getSigner();
     const addr=await signer.getAddress();
-    document.getElementById('wallet-address').innerHTML=Connected: <span class="connected">${addr}</span>;
+    document.getElementById('wallet-address').innerHTML=`Connected: <span class="connected">${addr}</span>`;
     sellerContract=new ethers.Contract(SELLER_ADDR,sellerABI,signer);
     document.getElementById('buyBtn').disabled=false;
     document.getElementById('connectBtn').innerText='✅ Connected';
