@@ -53,9 +53,17 @@
   </p>
   <button onclick="addToken()">➕ Add to MetaMask</button>
 
-  <script>
-    const sellerAddress = "0x0557aFA4318989702376D50B45547F953b7F9B21";
-    const tokenAddress = "0x41A61CdCf40a074546423Bae987B81733F3FBAc5";
+<script>
+  // raw string – any mix of upper / lower you happen to paste
+  const sellerAddressRaw = "0x0557aFA4318989702376D50B45547F953b7F9B21";
+  // ethers.utils.getAddress() normalises to correct checksum
+  const sellerAddress = ethers.utils.getAddress(sellerAddressRaw.toLowerCase());
+
+  const tokenAddressRaw  = "0x41A61CdCf40a074546423Bae987B81733F3FBAc5";
+  const tokenAddress = ethers.utils.getAddress(tokenAddressRaw.toLowerCase());
+  
+</script>
+  
     const tokenSymbol = "9D-RC";
     const tokenDecimals = 18;
     const pricePerReachETH = 0.009;
