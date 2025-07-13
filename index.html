@@ -9,7 +9,7 @@
       background: #0a0a0a;
       color: white;
       text-align: center;
-      padding: 50px;
+      padding: 40px;
     }
     input, button {
       padding: 10px;
@@ -29,8 +29,6 @@
       display: inline-block;
     }
   </style>
-
-  <!-- Dependencies -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
   <script src="https://unpkg.com/web3modal@1.9.12/dist/index.js"></script>
@@ -48,15 +46,14 @@
 
   <p>Official Reach Token Contract:</p>
   <p>
-    <code>0x41a61CdCf40a074546423Bae987B81733F3FBAc5</code><br />
-    <a href="https://etherscan.io/token/0x41a61CdCf40a074546423Bae987B81733F3FBAc5" target="_blank" style="color: #4caf50;">View on Etherscan</a>
+    <code>0x41A61CdCf40a074546423Bae987B81733F3FBAc5</code><br />
+    <a href="https://etherscan.io/token/0x41A61CdCf40a074546423Bae987B81733F3FBAc5" target="_blank" style="color: #4caf50;">View on Etherscan</a>
   </p>
   <button onclick="addToken()">➕ Add to MetaMask</button>
 
   <script>
-    // ✅ Use checksum-correct addresses
-    const sellerAddress = "0x0557aFa4318989702376d50b45547F953B7f9b21";
-    const tokenAddress = "0x41a61CdCf40a074546423Bae987B81733F3FBAc5";
+    const sellerAddress = "0x0557aFa4318989702376D50B45547F953B7f9b21"; // checksummed
+    const tokenAddress = "0x41A61CdCf40a074546423Bae987B81733F3FBAc5";
     const tokenSymbol = "9D-RC";
     const tokenDecimals = 18;
     const pricePerReachETH = 0.009;
@@ -95,10 +92,8 @@
         provider = new ethers.providers.Web3Provider(instance);
         signer = provider.getSigner();
         const address = await signer.getAddress();
-
         document.getElementById("wallet-address").innerHTML =
           "Connected: <span class='connected'>" + address + "</span>";
-
         sellerContract = new ethers.Contract(sellerAddress, sellerABI, signer);
       } catch (err) {
         console.error("Wallet connection failed:", err);
@@ -120,9 +115,16 @@
           return;
         }
 
+        const tokenAmount = ethers.BigNumber.from(reachAmount.toString());
         const ethValue = ethers.utils.parseEther((reachAmount * pricePerReachETH).toString());
-        const tx = await sellerContract.buyTokens(reachAmount, {
-          value: ethValue
+
+        console.log("Sending buyTokens transaction...");
+        console.log("Token amount:", tokenAmount.toString());
+        console.log("ETH value:", ethValue.toString());
+
+        const tx = await sellerContract.buyTokens(tokenAmount, {
+          value: ethValue,
+          gasLimit: 300000 // Adjust if needed
         });
 
         console.log("Transaction sent:", tx.hash);
@@ -130,13 +132,7 @@
         alert("Tokens purchased successfully!");
       } catch (err) {
         console.error("Buy failed:", err);
-        if (err?.error?.message) {
-          alert("Transaction failed: " + err.error.message);
-        } else if (err?.message) {
-          alert("Transaction failed: " + err.message);
-        } else {
-          alert("Transaction failed. Check console.");
-        }
+        alert("Transaction failed. Check console for details.");
       }
     }
 
