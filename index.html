@@ -77,20 +77,25 @@ amtInput.addEventListener('input',()=>{
 });
 
 /* BUY */
-async function buyTokens(){
-  try{
-    if(!sellerContract){await connectWallet();if(!sellerContract)return;}
-    const n=parseFloat(amtInput.value);
-    if(!n||n<=0){return alert('Enter token amount');}
-    const ethVal=ethers.utils.parseEther((n*PRICE_ETH).toString());
-    // send minTokens=0 to avoid slippage revert
-    const tx=await sellerContract.buyTokens(0,{value:ethVal,gasLimit:300000});
-    console.log('tx',tx.hash);
-    await tx.wait();
-    alert('✅ Purchase successful!');
-  }catch(err){console.error('Buy failed',err);alert('Transaction failed: '+(err.error?.message||err.message));}
+async function connectWallet(){
+  try {
+    if (!web3Modal) {
+      alert("Web3Modal is not ready yet. Please wait a moment and try again.");
+      return;
+    }
+    const instance = await web3Modal.connect();
+    provider = new ethers.providers.Web3Provider(instance);
+    signer = provider.getSigner();
+    const addr = await signer.getAddress();
+    document.getElementById('wallet-address').innerHTML = `Connected: <span class="connected">${addr}</span>`;
+    sellerContract = new ethers.Contract(sellerAddress, sellerABI, signer);
+    document.getElementById('buyBtn').disabled = false;
+    document.getElementById('connectBtn').innerText = '✅ Connected';
+  } catch (e) {
+    console.error('Connect error', e);
+    alert('Wallet connection failed.');
+  }
 }
-
 /* add token */
 async function addToken(){
   if(!window.ethereum)return alert('MetaMask required');
