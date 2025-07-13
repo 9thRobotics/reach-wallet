@@ -48,18 +48,15 @@
 
   <p>Official Reach Token Contract:</p>
   <p>
-    <code>0x41A61CdCf40a074546423Bae987B81733F3FBAc5</code><br />
-    <a href="https://etherscan.io/token/0x41A61CdCf40a074546423Bae987B81733F3FBAc5" target="_blank" style="color: #4caf50;">View on Etherscan</a>
+    <code>0x41a61CdCf40a074546423Bae987B81733F3FBAc5</code><br />
+    <a href="https://etherscan.io/token/0x41a61CdCf40a074546423Bae987B81733F3FBAc5" target="_blank" style="color: #4caf50;">View on Etherscan</a>
   </p>
   <button onclick="addToken()">➕ Add to MetaMask</button>
 
   <script>
-    // FIX: Proper checksummed address
-    const sellerAddress = ethers.utils.getAddress(
-      "0x0557aFA4318989702376D50B45547F953b7F9B21".toLowerCase()
-    );
-
-    const tokenAddress = "0x41A61CdCf40a074546423Bae987B81733F3FBAc5";
+    // ✅ Use checksum-correct addresses
+    const sellerAddress = "0x0557aFa4318989702376d50b45547F953B7f9b21";
+    const tokenAddress = "0x41a61CdCf40a074546423Bae987B81733F3FBAc5";
     const tokenSymbol = "9D-RC";
     const tokenDecimals = 18;
     const pricePerReachETH = 0.009;
@@ -97,9 +94,8 @@
         const instance = await web3Modal.connect();
         provider = new ethers.providers.Web3Provider(instance);
         signer = provider.getSigner();
-
         const address = await signer.getAddress();
-        console.log("Connected:", address);
+
         document.getElementById("wallet-address").innerHTML =
           "Connected: <span class='connected'>" + address + "</span>";
 
@@ -134,7 +130,13 @@
         alert("Tokens purchased successfully!");
       } catch (err) {
         console.error("Buy failed:", err);
-        alert("Transaction failed. Check your wallet.");
+        if (err?.error?.message) {
+          alert("Transaction failed: " + err.error.message);
+        } else if (err?.message) {
+          alert("Transaction failed: " + err.message);
+        } else {
+          alert("Transaction failed. Check console.");
+        }
       }
     }
 
