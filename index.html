@@ -21,7 +21,7 @@
   <h1>Buy Reach 9D‑RC Token</h1>
   <p>Fixed price: <strong>$27</strong> (≈ 0.009 ETH) per token</p>
 
-  <button id="connectBtn" onclick="connectWallet()" disabled>🔗 Connect Wallet</button>
+  <button id="connectBtn" onclick="connectWallet()">🔗 Connect Wallet</button>
   <div id="wallet-address"></div>
 
   <input id="reachAmt" type="number" placeholder="Number of tokens" min="1" step="1">
@@ -50,7 +50,6 @@ let web3Modal;
 const providerOpts={walletconnect:{package:window.WalletConnectProvider.default,options:{infuraId:"63f289c3783f403aa722e9bda1b680aa"}}};
 window.addEventListener('load',()=>{
   web3Modal=new window.Web3Modal.default({cacheProvider:true,providerOptions:providerOpts,theme:"dark"});
-  document.getElementById('connectBtn').disabled = false;
   if(web3Modal.cachedProvider){connectWallet();}
 });
 
@@ -58,23 +57,16 @@ window.addEventListener('load',()=>{
 let provider,signer,sellerContract;
 
 async function connectWallet(){
-  try {
-    if (!web3Modal) {
-      alert("Web3Modal is not ready yet. Please wait a moment and try again.");
-      return;
-    }
-    const instance = await web3Modal.connect();
-    provider = new ethers.providers.Web3Provider(instance);
-    signer = provider.getSigner();
-    const addr = await signer.getAddress();
-    document.getElementById('wallet-address').innerHTML = `Connected: <span class="connected">${addr}</span>`;
-    sellerContract = new ethers.Contract(sellerAddress, sellerABI, signer);
-    document.getElementById('buyBtn').disabled = false;
-    document.getElementById('connectBtn').innerText = '✅ Connected';
-  } catch (e) {
-    console.error('Connect error', e);
-    alert('Wallet connection failed.');
-  }
+  try{
+    const instance=await web3Modal.connect();
+    provider=new ethers.providers.Web3Provider(instance);
+    signer=provider.getSigner();
+    const addr=await signer.getAddress();
+    document.getElementById('wallet-address').innerHTML=Connected: <span class="connected">${addr}</span>;
+    sellerContract=new ethers.Contract(SELLER_ADDR,sellerABI,signer);
+    document.getElementById('buyBtn').disabled=false;
+    document.getElementById('connectBtn').innerText='✅ Connected';
+  }catch(e){console.error('Connect error',e);alert('Wallet connection failed.');}
 }
 
 /* estimate */
@@ -91,6 +83,7 @@ async function buyTokens(){
     const n=parseFloat(amtInput.value);
     if(!n||n<=0){return alert('Enter token amount');}
     const ethVal=ethers.utils.parseEther((n*PRICE_ETH).toString());
+    // send minTokens=0 to avoid slippage revert
     const tx=await sellerContract.buyTokens(0,{value:ethVal,gasLimit:300000});
     console.log('tx',tx.hash);
     await tx.wait();
