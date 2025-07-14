@@ -46,13 +46,13 @@
   <script>
   /************  CONFIG  ************/
   const SELLER_ADDRESS   = "0x0557aFA4318989702376D50B45547F953b7F9B21";
-  const CHAINLINK_FEED   = "0x694AA1769357215DE4FAC081bf1f309aDC325306"; // Sepolia ETH/USD
+  const CHAINLINK_FEED = "0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419";  //  Mainnet ETH/USD feed
   const TOKEN_FLOOR_USD  = 27;
   const TOKEN_DECIMALS   = 18;
-  const NETWORK_ID       = 11155111;
+  const NETWORK_ID       = 1;
 
   // ==== NEW: ERC-20 Token config ====
-  const TOKEN_ADDRESS = "YOUR_TOKEN_CONTRACT_ADDRESS"; // <== REPLACE THIS!
+  const TOKEN_ADDRESS = "0x41a61cdcf40a074546423bae987b81733f3fbac5";
   const TOKEN_ABI = [
     {"constant":true,"inputs":[{"name":"account","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"type":"function"},
     {"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"type":"function"}
