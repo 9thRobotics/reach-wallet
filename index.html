@@ -45,7 +45,8 @@
 
   <script>
   /************  CONFIG  ************/
-  const SELLER_ADDRESS   = "0x0557aFA4318989702376D50B45547F953b7F9B21";
+  const { utils } = require('ethers');
+  console.log(utils.getAddress('0x0557afa4318989702376d50b45547f953b7f9b21'));
   const CHAINLINK_FEED = "0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419";  //  Mainnet ETH/USD feed
   const TOKEN_FLOOR_USD  = 27;
   const TOKEN_DECIMALS   = 18;
