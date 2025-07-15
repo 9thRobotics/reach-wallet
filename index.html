@@ -2,50 +2,54 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Buy Reach Token (9D‑RC)</title>
+  <title>Reach 9D‑RC Token Sale</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    body { background:#0a0a0a; color:#fff; font-family:sans-serif; text-align:center; padding:40px }
+    body { background:#0a0a0a; color:#fff; font-family:Arial,sans-serif; text-align:center; padding:40px }
+    h1 { margin-bottom:10px }
     input, button { font-size:16px; padding:12px 20px; margin:10px; border-radius:8px }
     button { cursor:pointer; background:#4caf50; border:none; color:#fff }
     button:hover { background:#45a049 }
     .status { margin-top:10px; font-size:14px }
+    .warn { color:#ff9800 }
     .error { color:#f44336 }
   </style>
 </head>
 <body>
   <h1>Reach 9D‑RC Token Sale</h1>
 
-  <button id="connectBtn">Connect Wallet</button>
-  <button id="disconnectBtn" style="display:none">Disconnect Wallet</button>
+  <button id="connectBtn" onclick="toggleWallet()">Connect Wallet</button>
   <div id="walletStatus" class="status">Wallet not connected</div>
 
   <h2>Buy Reach 9D‑RC Tokens</h2>
-  <input type="number" id="tokenAmount" placeholder="Number of Tokens (Whole Only)" min="1" step="1" />
-  <div id="estimate" class="status">Enter token amount</div>
-  <button id="buyBtn">Buy Now</button>
+  <input type="number" id="tokenAmount" placeholder="Whole Tokens Only" min="1" step="1" />
+  <div id="estimate" class="status warn">Enter token amount to estimate ETH</div>
+  <button onclick="buyTokens()">Buy Now</button>
   <div id="txStatus" class="status"></div>
 
-  <div style="margin-top:30px">
-    <button onclick="addTokenToWallet()">Add Token to Wallet</button>
+  <div id="extra" style="margin-top:30px; display:none;">
+    <button onclick="addTokenToWallet()">➕ Add 9D‑RC Token to Wallet</button>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+
   <script>
-    const SELLER_ADDRESS = "0x0557afA4318989702376D50B45547F953B7f9B21";
-    const CHAINLINK_FEED = "0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419";
-    const TOKEN_ADDRESS = "0x41a61cdcf40a074546423bae987b81733f3fbac5";
+    const SELLER_ADDRESS = "0x0557afA4318989702376D50B45547F953b7F9B21";
+    const TOKEN_ADDRESS  = "0x41a61cdcf40a074546423bae987b81733f3fbac5";
+    const CHAINLINK_FEED = "0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419"; // ETH/USD mainnet
     const USD_PER_TOKEN = 27;
     const TOKEN_DECIMALS = 18;
-    const TOKEN_SYMBOL = "9D-RC";
+    const TOKEN_SYMBOL = "9D‑RC";
     const TOKEN_NAME = "Reach Token";
     const TOKEN_IMAGE = "https://reachtoken.io/logo.png";
 
-    let provider, signer, userAddress, isSigning = false;
+    let provider, signer, userAddress;
+    let isBuying = false;
 
-    document.getElementById("connectBtn").addEventListener("click", connect);
-    document.getElementById("disconnectBtn").addEventListener("click", disconnectWallet);
-    document.getElementById("buyBtn").addEventListener("click", buyTokens);
+    async function toggleWallet() {
+      if (!provider) return connect();
+      disconnect();
+    }
 
     async function connect() {
       if (!window.ethereum) return alert("MetaMask or wallet required.");
@@ -54,66 +58,60 @@
       signer = provider.getSigner();
       userAddress = await signer.getAddress();
       document.getElementById("walletStatus").textContent = `Connected: ${userAddress}`;
-      document.getElementById("connectBtn").style.display = "none";
-      document.getElementById("disconnectBtn").style.display = "inline-block";
+      document.getElementById("connectBtn").textContent = "Disconnect Wallet";
+      document.getElementById("extra").style.display = "block";
     }
 
-    async function disconnectWallet() {
+    function disconnect() {
       provider = signer = userAddress = null;
       document.getElementById("walletStatus").textContent = "Wallet disconnected";
-      document.getElementById("connectBtn").style.display = "inline-block";
-      document.getElementById("disconnectBtn").style.display = "none";
+      document.getElementById("connectBtn").textContent = "Connect Wallet";
+      document.getElementById("txStatus").textContent = "";
+      document.getElementById("estimate").textContent = "Enter token amount to estimate ETH";
+      document.getElementById("extra").style.display = "none";
     }
 
     async function getEthPriceUsd() {
-      const feed = new ethers.Contract(
-        CHAINLINK_FEED,
-        [{
-          "inputs": [], "name": "latestRoundData", "outputs": [
-            { "name": "roundId", "type": "uint80" },
-            { "name": "answer", "type": "int256" },
-            { "name": "startedAt", "type": "uint256" },
-            { "name": "updatedAt", "type": "uint256" },
-            { "name": "answeredInRound", "type": "uint80" }
-          ], "stateMutability": "view", "type": "function"
-        }],
-        provider
-      );
+      const feed = new ethers.Contract(CHAINLINK_FEED, [{
+        "inputs": [], "name": "latestRoundData", "outputs": [
+          { "name": "roundId", "type": "uint80" },
+          { "name": "answer", "type": "int256" },
+          { "name": "startedAt", "type": "uint256" },
+          { "name": "updatedAt", "type": "uint256" },
+          { "name": "answeredInRound", "type": "uint80" }
+        ],
+        "stateMutability": "view", "type": "function"
+      }], provider);
       const data = await feed.latestRoundData();
       return Number(data.answer) / 1e8;
     }
 
     async function buyTokens() {
-      if (isSigning) {
-        alert("A signing request is already pending. Please wait.");
-        return;
-      }
+      if (!signer || !userAddress) return alert("Connect your wallet first.");
+      if (isBuying) return alert("Transaction pending, please wait...");
+      isBuying = true;
 
-      const tokenCount = parseInt(document.getElementById("tokenAmount").value);
-      if (!tokenCount || tokenCount <= 0 || !Number.isInteger(tokenCount)) {
-        alert("Enter a valid whole token amount.");
-        return;
-      }
-
-      isSigning = true;
       try {
+        const tokenCount = parseInt(document.getElementById("tokenAmount").value);
+        if (!tokenCount || tokenCount <= 0 || !Number.isInteger(tokenCount)) {
+          alert("Enter a valid whole token amount.");
+          isBuying = false;
+          return;
+        }
+
         const ethPrice = await getEthPriceUsd();
         const totalUsd = tokenCount * USD_PER_TOKEN;
         const ethRequired = totalUsd / ethPrice;
         const ethValue = ethers.utils.parseEther(ethRequired.toFixed(6));
         const minTokens = ethers.utils.parseUnits(tokenCount.toString(), TOKEN_DECIMALS);
 
-        const contract = new ethers.Contract(
-          SELLER_ADDRESS,
-          [{
-            "inputs": [{ "internalType": "uint256", "name": "minTokens", "type": "uint256" }],
-            "name": "buyTokens",
-            "outputs": [],
-            "stateMutability": "payable",
-            "type": "function"
-          }],
-          signer
-        );
+        const contract = new ethers.Contract(SELLER_ADDRESS, [{
+          "inputs": [{ "internalType": "uint256", "name": "minTokens", "type": "uint256" }],
+          "name": "buyTokens",
+          "outputs": [],
+          "stateMutability": "payable",
+          "type": "function"
+        }], signer);
 
         const tx = await contract.buyTokens(minTokens, {
           value: ethValue,
@@ -128,9 +126,25 @@
         console.error(err);
         document.getElementById("txStatus").textContent = `❌ Failed: ${err.reason || err.message}`;
       } finally {
-        isSigning = false;
+        isBuying = false;
       }
     }
+
+    document.getElementById("tokenAmount").addEventListener("input", async () => {
+      const tokens = parseInt(document.getElementById("tokenAmount").value);
+      if (!tokens || tokens <= 0 || !Number.isInteger(tokens)) {
+        document.getElementById("estimate").textContent = "Enter whole number of tokens";
+        return;
+      }
+      try {
+        const ethPrice = await getEthPriceUsd();
+        const totalUsd = tokens * USD_PER_TOKEN;
+        const ethNeeded = totalUsd / ethPrice;
+        document.getElementById("estimate").textContent = `≈ ${ethNeeded.toFixed(6)} ETH ($${totalUsd.toFixed(2)})`;
+      } catch (e) {
+        document.getElementById("estimate").textContent = "Unable to fetch ETH price";
+      }
+    });
 
     async function addTokenToWallet() {
       try {
@@ -150,23 +164,6 @@
         console.error("Add token error:", err);
       }
     }
-
-    document.getElementById("tokenAmount").addEventListener("input", async () => {
-      const tokens = parseInt(document.getElementById("tokenAmount").value);
-      if (!tokens || tokens <= 0 || !Number.isInteger(tokens)) {
-        document.getElementById("estimate").textContent = "Enter whole number of tokens";
-        return;
-      }
-
-      try {
-        const ethPrice = await getEthPriceUsd();
-        const totalUsd = tokens * USD_PER_TOKEN;
-        const ethNeeded = totalUsd / ethPrice;
-        document.getElementById("estimate").textContent = `≈ ${ethNeeded.toFixed(6)} ETH ($${totalUsd.toFixed(2)})`;
-      } catch (e) {
-        document.getElementById("estimate").textContent = "Unable to fetch ETH price";
-      }
-    });
   </script>
 </body>
 </html>
