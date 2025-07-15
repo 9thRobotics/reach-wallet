@@ -1,4 +1,3 @@
-<!-- index.html (fixed version) -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,28 +5,28 @@
   <title>Reach 9D-RC Token Sale</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    body{background:#0a0a0a;color:#fff;font-family:sans-serif;text-align:center;padding:40px}
-    button,input{font-size:16px;padding:12px 20px;margin:10px;border-radius:8px}
-    button{cursor:pointer;background:#4caf50;border:none;color:#fff}
-    button:hover{background:#45a049}
-    .status{margin-top:10px;font-size:14px}
-    .error{color:#f44336}
-    #betaBanner{background:#222;border:1px solid #555;padding:16px;border-radius:8px;max-width:500px;margin:0 auto 30px}
-    #betaBanner button{background:#2196f3}
+    body { background:#0a0a0a; color:#fff; font-family:sans-serif; text-align:center; padding:40px }
+    button, input { font-size:16px; padding:12px 20px; margin:10px; border-radius:8px }
+    button { cursor:pointer; background:#4caf50; border:none; color:#fff }
+    button:hover { background:#45a049 }
+    .status { margin-top:10px; font-size:14px }
+    .error { color:#f44336 }
+    #betaBanner { background:#222; border:1px solid #555; padding:16px; border-radius:8px; max-width:500px; margin:0 auto 30px }
+    #betaBanner button { background:#2196f3 }
   </style>
-
-  <!-- CORRECT SCRIPT ORDER -->
   <script src="https://unpkg.com/@web3modal/standalone@3.6.0/dist/standalone.umd.js"></script>
   <script src="https://unpkg.com/@walletconnect/ethereum-provider@2.11.6/dist/umd/index.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 </head>
 <body>
 
+<!-- Beta Warning -->
 <div id="betaBanner" style="display:none">
   <p>Please note this is a <b>beta</b> feature provided on an “as-is” basis. 9th Robotics accepts no liability for any loss.</p>
   <button id="proceedBtn">I Understand – Proceed</button>
 </div>
 
+<!-- Main App -->
 <div id="app">
   <h1>Reach 9D‑RC Token</h1>
 
@@ -58,13 +57,14 @@ let bannerAccepted = false;
 let connecting = false;
 let buying = false;
 
-document.getElementById("proceedBtn").onclick = async () => {
+// Beta proceed
+document.getElementById("proceedBtn").onclick = () => {
   bannerAccepted = true;
   document.getElementById("betaBanner").style.display = "none";
-  setupWeb3Modal();
-  await connectWallet();
+  document.getElementById("app").style.display = "block";
 };
 
+// Connect button
 document.getElementById("connectBtn").onclick = async () => {
   if (connecting) return;
   connecting = true;
