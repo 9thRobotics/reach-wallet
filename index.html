@@ -11,8 +11,6 @@
     button:hover { background:#45a049 }
     .status { margin-top:10px; font-size:14px }
     .error { color:#f44336 }
-    #betaBanner { background:#222; border:1px solid #555; padding:16px; border-radius:8px; max-width:500px; margin:0 auto 30px }
-    #betaBanner button { background:#2196f3 }
   </style>
   <script src="https://unpkg.com/@web3modal/standalone@3.6.0/dist/standalone.umd.js"></script>
   <script src="https://unpkg.com/@walletconnect/ethereum-provider@2.11.6/dist/umd/index.min.js"></script>
@@ -20,28 +18,19 @@
 </head>
 <body>
 
-<!-- Beta Warning -->
-<div id="betaBanner" style="display:none">
-  <p>Please note this is a <b>beta</b> feature provided on an “as-is” basis. 9th Robotics accepts no liability for any loss.</p>
-  <button id="proceedBtn">I Understand – Proceed</button>
-</div>
+<h1>Reach 9D‑RC Token</h1>
 
-<!-- Main App -->
-<div id="app">
-  <h1>Reach 9D‑RC Token</h1>
+<button id="connectBtn">Connect Wallet</button>
+<button id="disconnectBtn" style="display:none;background:#e53935">Disconnect</button>
+<div id="walletStatus" class="status">Wallet not connected</div>
 
-  <button id="connectBtn">Connect Wallet</button>
-  <button id="disconnectBtn" style="display:none;background:#e53935">Disconnect</button>
-  <div id="walletStatus" class="status">Wallet not connected</div>
+<h2>Buy Reach Tokens</h2>
+<input type="number" id="tokenAmount" placeholder="Whole Tokens Only" min="1" step="1" />
+<div id="estimate" class="status">Enter token amount</div>
+<button id="buyBtn">Buy Now</button>
+<div id="txStatus" class="status"></div>
 
-  <h2>Buy Reach Tokens</h2>
-  <input type="number" id="tokenAmount" placeholder="Whole Tokens Only" min="1" step="1" />
-  <div id="estimate" class="status">Enter token amount</div>
-  <button id="buyBtn">Buy Now</button>
-  <div id="txStatus" class="status"></div>
-
-  <button id="addBtn">➕ Add 9D-RC to Wallet</button>
-</div>
+<button id="addBtn">➕ Add 9D-RC to Wallet</button>
 
 <script>
 const SELLER_ADDRESS = "0x0557afA4318989702376D50B45547F953B7f9B21";
@@ -53,27 +42,12 @@ const TOKEN_SYMBOL   = "9D-RC";
 const TOKEN_IMAGE    = "https://reachtoken.io/logo.png";
 
 let w3m, provider, signer, userAddr;
-let bannerAccepted = false;
 let connecting = false;
 let buying = false;
 
-// Beta proceed
-document.getElementById("proceedBtn").onclick = () => {
-  bannerAccepted = true;
-  document.getElementById("betaBanner").style.display = "none";
-  document.getElementById("app").style.display = "block";
-};
-
-// Connect button
 document.getElementById("connectBtn").onclick = async () => {
   if (connecting) return;
   connecting = true;
-  if (!bannerAccepted) {
-    document.getElementById("betaBanner").style.display = "block";
-    document.getElementById("app").style.display = "none";
-    connecting = false;
-    return;
-  }
   await connectWallet();
   connecting = false;
 };
@@ -103,7 +77,6 @@ async function connectWallet() {
     document.getElementById("walletStatus").textContent = `Connected: ${userAddr}`;
     document.getElementById("connectBtn").style.display = "none";
     document.getElementById("disconnectBtn").style.display = "inline-block";
-    document.getElementById("app").style.display = "block";
   } catch (err) {
     console.error("Connect error:", err);
   }
