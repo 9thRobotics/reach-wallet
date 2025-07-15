@@ -2,214 +2,124 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Reach 9D‑RC Token Sale</title>
+  <title>Buy Reach Token (9D‑RC)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    body { background:#0a0a0a; color:#fff; font-family:Arial,sans-serif; text-align:center; padding:40px }
-    h1 { margin-bottom:10px }
+    body { background:#0a0a0a; color:#fff; font-family:sans-serif; text-align:center; padding:40px }
     input, button { font-size:16px; padding:12px 20px; margin:10px; border-radius:8px }
     button { cursor:pointer; background:#4caf50; border:none; color:#fff }
     button:hover { background:#45a049 }
     .status { margin-top:10px; font-size:14px }
-    .warn { color:#ff9800 }
     .error { color:#f44336 }
   </style>
 </head>
 <body>
+  <h1>Reach 9D‑RC Token Sale</h1>
 
-  <h1>Reach 9D‑RC Token</h1>
-
-  <!-- 1️⃣ Connect Button -->
-  <button id="connectBtn" onclick="toggleConnection()">Connect Wallet</button>
+  <button onclick="connect()">Connect Wallet</button>
   <div id="walletStatus" class="status">Wallet not connected</div>
 
-  <!-- 2️⃣ Buy Tokens -->
-  <div id="buySection">
-    <h2>Buy Reach 9D‑RC</h2>
-    <input type="number" id="ethAmount" placeholder="ETH to spend" step="0.001" min="0" />
-    <div id="estimate" class="status warn">Enter ETH amount to see estimate</div>
-    <button onclick="buyTokens()">Buy Tokens</button>
-    <div id="txStatus" class="status"></div>
-  </div>
+  <h2>Buy Reach 9D‑RC Tokens</h2>
+  <input type="number" id="tokenAmount" placeholder="Number of Tokens (Whole Only)" min="1" step="1" />
+  <div id="estimate" class="status">Enter token amount</div>
+  <button onclick="buyTokens()">Buy Now</button>
+  <div id="txStatus" class="status"></div>
 
-  <!-- 3️⃣ Token Balance -->
-  <div id="balanceSection" style="margin-top:30px; display:none;">
-    <h2>Your Balance</h2>
-    <div id="balance" class="status">–</div>
-    <button onclick="refreshBalance()">Refresh Balance</button>
-    <br><br>
-    <button onclick="addTokenToWallet()">➕ Add 9D‑RC Token to Wallet</button>
-  </div>
-
-  <!-- libs -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-  <script src="https://unpkg.com/web3modal@1.9.5/dist/index.js"></script>
 
   <script>
-  const SELLER_ADDRESS = "0x0557afA4318989702376D50B45547F953B7f9B21";  // ✅ checksummed
-  const TOKEN_ADDRESS  = "0x41a61cdcf40a074546423bae987b81733f3fbac5";
-  const CHAINLINK_FEED = "0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419";  // Mainnet ETH/USD
-  const NETWORK_ID = 1;
-  const TOKEN_DECIMALS = 18;
-  const TOKEN_SYMBOL = "9D‑RC";
-  const TOKEN_NAME = "Reach Token";
-  const TOKEN_IMAGE = "https://reachtoken.io/logo.png";  // Replace with your token logo if hosted
+    const SELLER_ADDRESS = "0x0557afA4318989702376D50B45547F953b7F9B21";
+    const CHAINLINK_FEED = "0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419";
+    const USD_PER_TOKEN = 27;
 
-  let web3Modal, provider, signer, userAddress;
-  let sellerContract, tokenContract, feedContract;
-  let ethPriceUsd = null;
+    let provider, signer, userAddress;
 
-  const TOKEN_ABI = [
-    { "constant": true, "inputs": [{ "name": "account", "type": "address" }], "name": "balanceOf", "outputs": [{ "name": "", "type": "uint256" }], "type": "function" },
-    { "constant": true, "inputs": [], "name": "decimals", "outputs": [{ "name": "", "type": "uint8" }], "type": "function" }
-  ];
-  const SELLER_ABI = [
-    { "inputs": [{ "internalType": "uint256", "name": "minTokens", "type": "uint256" }], "name": "buyTokens", "outputs": [], "stateMutability": "payable", "type": "function" }
-  ];
-  const FEED_ABI = [
-    { "inputs": [], "name": "latestRoundData", "outputs": [
-      { "internalType": "uint80", "name": "roundId", "type": "uint80" },
-      { "internalType": "int256", "name": "answer", "type": "int256" },
-      { "internalType": "uint256", "name": "startedAt", "type": "uint256" },
-      { "internalType": "uint256", "name": "updatedAt", "type": "uint256" },
-      { "internalType": "uint80", "name": "answeredInRound", "type": "uint80" }
-    ], "stateMutability": "view", "type": "function" }
-  ];
-
-  async function init() {
-    web3Modal = new window.Web3Modal.default({ cacheProvider: false, providerOptions: {} });
-  }
-
-  window.addEventListener("load", init);
-
-  async function toggleConnection() {
-    if (!signer) await connectWallet();
-    else await disconnectWallet();
-  }
-
-  async function connectWallet() {
-    try {
-      const externalProvider = await web3Modal.connect();
-      provider = new ethers.providers.Web3Provider(externalProvider);
-      const { chainId } = await provider.getNetwork();
-      if (chainId !== NETWORK_ID) {
-        document.getElementById("walletStatus").innerHTML = `<span class="error">Wrong network (chain ${chainId}). Switch to Ethereum Mainnet.</span>`;
-        return;
-      }
+    async function connect() {
+      if (!window.ethereum) return alert("MetaMask or wallet required.");
+      provider = new ethers.providers.Web3Provider(window.ethereum);
+      await provider.send("eth_requestAccounts", []);
       signer = provider.getSigner();
       userAddress = await signer.getAddress();
-
-      sellerContract = new ethers.Contract(SELLER_ADDRESS, SELLER_ABI, signer);
-      tokenContract = new ethers.Contract(TOKEN_ADDRESS, TOKEN_ABI, provider);
-      feedContract  = new ethers.Contract(CHAINLINK_FEED, FEED_ABI, provider);
-
       document.getElementById("walletStatus").textContent = `Connected: ${userAddress}`;
-      document.getElementById("connectBtn").textContent = "Disconnect Wallet";
-
-      document.getElementById("balanceSection").style.display = "block";
-
-      await updatePrice();
-      document.getElementById("ethAmount").addEventListener("input", updateEstimate);
-      refreshBalance();
-    } catch (err) {
-      console.error(err);
-      document.getElementById("walletStatus").textContent = "Connection failed";
     }
-  }
 
-  async function disconnectWallet() {
-    web3Modal.clearCachedProvider();
-    provider = signer = null;
-    document.getElementById("walletStatus").textContent = "Wallet disconnected";
-    document.getElementById("connectBtn").textContent = "Connect Wallet";
-    document.getElementById("ethAmount").value = "";
-    document.getElementById("estimate").textContent = "Enter ETH amount to see estimate";
-    document.getElementById("txStatus").textContent = "";
-    document.getElementById("balanceSection").style.display = "none";
-  }
-
-  async function updatePrice() {
-    try {
-      const data = await feedContract.latestRoundData();
-      ethPriceUsd = Number(data.answer) / 1e8;
-      updateEstimate();
-    } catch (err) {
-      console.warn("Chainlink error:", err);
-      document.getElementById("estimate").textContent = "⚠️ Price unavailable";
+    async function getEthPriceUsd() {
+      const feed = new ethers.Contract(
+        CHAINLINK_FEED,
+        [{
+          "inputs": [], "name": "latestRoundData", "outputs": [
+            { "name": "roundId", "type": "uint80" },
+            { "name": "answer", "type": "int256" },
+            { "name": "startedAt", "type": "uint256" },
+            { "name": "updatedAt", "type": "uint256" },
+            { "name": "answeredInRound", "type": "uint80" }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        }],
+        provider
+      );
+      const data = await feed.latestRoundData();
+      return Number(data.answer) / 1e8;
     }
-  }
 
-  function updateEstimate() {
-    const eth = parseFloat(document.getElementById("ethAmount").value);
-    if (!ethPriceUsd || !eth) {
-      document.getElementById("estimate").textContent = eth ? "Fetching price..." : "Enter ETH amount";
-      return;
-    }
-    const tokens = (eth * ethPriceUsd) / 27; // token floor USD
-    document.getElementById("estimate").textContent = `≈ ${tokens.toFixed(2)} Reach 9D‑RC`;
-  }
-
-  async function buyTokens() {
-    const ethAmount = parseFloat(document.getElementById("ethAmount").value);
-    if (!ethAmount || ethAmount <= 0) return alert("Enter a valid ETH amount.");
-
-    try {
-      const ethWei = ethers.utils.parseEther(ethAmount.toString());
-      const estTokens = ethPriceUsd ? (ethAmount * ethPriceUsd) / 27 : 0;
-      const minTokens = ethers.utils.parseUnits(Math.floor(estTokens).toString(), TOKEN_DECIMALS);
-
-      let tx;
-      try {
-        tx = await sellerContract.buyTokens(minTokens, { value: ethWei });
-      } catch (gasErr) {
-        console.warn("Gas estimate failed, using fallback gas limit.");
-        tx = await sellerContract.buyTokens(minTokens, {
-          value: ethWei,
-          gasLimit: ethers.utils.hexlify(250000)
-        });
+    async function buyTokens() {
+      const tokenCount = parseInt(document.getElementById("tokenAmount").value);
+      if (!tokenCount || tokenCount <= 0 || !Number.isInteger(tokenCount)) {
+        alert("Enter a valid whole token amount.");
+        return;
       }
 
-      document.getElementById("txStatus").textContent = "⏳ Waiting for confirmation...";
-      await tx.wait();
-      document.getElementById("txStatus").textContent = "✅ Purchase successful!";
-      document.getElementById("ethAmount").value = "";
-      refreshBalance();
-    } catch (err) {
-      console.error(err);
-      document.getElementById("txStatus").textContent = `❌ Failed: ${err.reason || err.message}`;
-    }
-  }
+      try {
+        const ethPrice = await getEthPriceUsd();
+        const totalUsd = tokenCount * USD_PER_TOKEN;
+        const ethRequired = totalUsd / ethPrice;
+        const ethValue = ethers.utils.parseEther(ethRequired.toFixed(6));
+        const minTokens = ethers.utils.parseUnits(tokenCount.toString(), 18);
 
-  async function refreshBalance() {
-    if (!tokenContract || !userAddress) return;
-    try {
-      const bal = await tokenContract.balanceOf(userAddress);
-      const formatted = ethers.utils.formatUnits(bal, TOKEN_DECIMALS);
-      document.getElementById("balance").textContent = `${Number(formatted).toFixed(4)} Reach 9D‑RC`;
-    } catch (err) {
-      document.getElementById("balance").textContent = "Unable to fetch balance";
-    }
-  }
+        const contract = new ethers.Contract(
+          SELLER_ADDRESS,
+          [{
+            "inputs": [{ "internalType": "uint256", "name": "minTokens", "type": "uint256" }],
+            "name": "buyTokens",
+            "outputs": [],
+            "stateMutability": "payable",
+            "type": "function"
+          }],
+          signer
+        );
 
-  async function addTokenToWallet() {
-    try {
-      await window.ethereum.request({
-        method: 'wallet_watchAsset',
-        params: {
-          type: 'ERC20',
-          options: {
-            address: TOKEN_ADDRESS,
-            symbol: TOKEN_SYMBOL,
-            decimals: TOKEN_DECIMALS,
-            image: TOKEN_IMAGE
-          }
-        }
-      });
-    } catch (err) {
-      console.error("Add token error:", err);
-    }
-  }
+        const tx = await contract.buyTokens(minTokens, {
+          value: ethValue,
+          gasLimit: 200000
+        });
 
+        document.getElementById("txStatus").textContent = "⏳ Waiting for confirmation...";
+        await tx.wait();
+        document.getElementById("txStatus").textContent = "✅ Token purchase successful!";
+      } catch (err) {
+        console.error(err);
+        document.getElementById("txStatus").textContent = `❌ Failed: ${err.reason || err.message}`;
+      }
+    }
+
+    // Live estimate on input
+    document.getElementById("tokenAmount").addEventListener("input", async () => {
+      const tokens = parseInt(document.getElementById("tokenAmount").value);
+      if (!tokens || tokens <= 0 || !Number.isInteger(tokens)) {
+        document.getElementById("estimate").textContent = "Enter whole number of tokens";
+        return;
+      }
+
+      try {
+        const ethPrice = await getEthPriceUsd();
+        const totalUsd = tokens * USD_PER_TOKEN;
+        const ethNeeded = totalUsd / ethPrice;
+        document.getElementById("estimate").textContent = `≈ ${ethNeeded.toFixed(6)} ETH ($${totalUsd.toFixed(2)})`;
+      } catch (e) {
+        document.getElementById("estimate").textContent = "Unable to fetch ETH price";
+      }
+    });
   </script>
 </body>
 </html>
