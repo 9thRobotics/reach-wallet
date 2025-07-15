@@ -125,8 +125,8 @@ async function buyTokens() {
   buying=true;
   try {
     const ethUsd   = await getEthPrice();
-    const ethNeed  = (tok*USD_PER_TOKEN)/ethUsd;
-    const ethValue = ethers.utils.parseEther(ethNeed.toFixed(6));
+    const ethNeeded = ((tok * USD_PER_TOKEN) / ethUsd) * 1.01;  // +1% buffer
+    const ethValue = ethers.utils.parseEther(ethNeeded.toFixed(6));
     const minTok   = ethers.utils.parseUnits(tok.toString(),TOKEN_DECIMALS);
 
     const abi=[{inputs:[{internalType:"uint256",name:"minTokens",type:"uint256"}],
@@ -140,9 +140,10 @@ async function buyTokens() {
     document.getElementById("txStatus").textContent="✅ Purchase successful!";
     document.getElementById("tokenAmount").value="";
     updateEstimate();
-  } catch(e){
-    console.error(e);
-    document.getElementById("txStatus").textContent=`❌ ${e.reason||e.message}`;
+  } catch (err) {
+    const message = err?.error?.message || err?.reason || err?.message || "Transaction failed";
+    document.getElementById("txStatus").textContent = `❌ ${message}`;
+    console.error("Buy error:", err);
   }
   buying=false;
 }
