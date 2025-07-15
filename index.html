@@ -5,32 +5,29 @@
   <title>Reach 9D-RC Token Sale</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    body {background:#0a0a0a;color:#fff;font-family:sans-serif;text-align:center;padding:40px}
+    body{background:#0a0a0a;color:#fff;font-family:sans-serif;text-align:center;padding:40px}
     button,input{font-size:16px;padding:12px 20px;margin:10px;border-radius:8px}
     button{cursor:pointer;background:#4caf50;border:none;color:#fff}
     button:hover{background:#45a049}
-    .status{margin-top:10px;font-size:14px}
-    .error{color:#f44336}
-    /* beta banner */
+    .status{margin-top:10px;font-size:14px}.error{color:#f44336}
     #betaBanner{background:#222;border:1px solid #555;padding:16px;border-radius:8px;max-width:500px;margin:0 auto 30px}
     #betaBanner button{background:#2196f3}
   </style>
 
-  <!--  ▸  Web3Modal v3  ▸  -->
+  <!-- Wallet libraries -->
   <script src="https://unpkg.com/@walletconnect/ethereum-provider@2.11.6/dist/umd/index.min.js"></script>
   <script src="https://unpkg.com/@web3modal/standalone@3.6.0/dist/standalone.umd.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 </head>
 <body>
 
-  <!-- ▸ Beta Disclaimer (like Etherscan) -->
+  <!-- Beta disclaimer -->
   <div id="betaBanner">
-    <p>Please take note that this is a <b>beta</b> feature and is provided on an “as-is” basis.
-       9thRobotics will not be liable for any loss, direct or indirect, through continued use of this feature.</p>
-    <button id="proceedBtn">I Understand&nbsp;–&nbsp;Proceed</button>
+    <p>This is a <b>beta</b> feature provided “as-is”. 9thRobotics is not liable for any loss, direct or indirect, from its use.</p>
+    <button id="proceedBtn">I Understand – Proceed</button>
   </div>
 
-  <!-- ▸ Main DApp UI (hidden until banner accepted) -->
+  <!-- App (hidden until banner accepted) -->
   <div id="app" style="display:none">
     <h1>Reach 9D-RC Token</h1>
 
@@ -38,165 +35,130 @@
     <div id="walletStatus" class="status">Wallet not connected</div>
 
     <h2>Buy Reach Tokens</h2>
-    <input type="number" id="tokenAmount" placeholder="Whole Tokens Only" min="1" step="1" />
-    <div id="estimate" class="status">Enter token amount</div>
+    <input  id="tokenAmount" type="number" min="1" step="1" placeholder="Whole Tokens Only"/>
+    <div   id="estimate" class="status">Enter token amount</div>
     <button id="buyBtn">Buy Now</button>
-    <div id="txStatus" class="status"></div>
+    <div   id="txStatus" class="status"></div>
 
     <button id="addBtn">➕ Add 9D-RC to Wallet</button>
     <button id="disconnectBtn" style="display:none;background:#e53935">Disconnect</button>
   </div>
 
 <script>
-/* ─────────────────────────  CONFIG  ───────────────────────── */
+/* ───────── CONFIG ───────── */
 const SELLER_ADDRESS = "0x0557afA4318989702376D50B45547F953B7f9B21";
 const TOKEN_ADDRESS  = "0x41a61cdcf40a074546423bae987b81733f3fbac5";
-const CHAINLINK_FEED = "0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419"; // mainnet ETH/USD
+const CHAINLINK_FEED = "0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419";
 const USD_PER_TOKEN  = 27;
 const TOKEN_DECIMALS = 18;
 const TOKEN_SYMBOL   = "9D-RC";
-const TOKEN_IMAGE    = "https://reachtoken.io/logo.png";  // replace if desired
-/* ──────────────────────────────────────────────────────────── */
+const TOKEN_IMAGE    = "https://reachtoken.io/logo.png";
+/* ───────────────────────── */
 
 let web3modal, ethersProvider, signer, walletAddress;
-let isBuying = false;
+let isBuying=false;
 
-/* ▸ Beta banner ▸ */
-document.getElementById("proceedBtn").onclick = () => {
-  document.getElementById("betaBanner").style.display = "none";
-  document.getElementById("app").style.display = "block";
-  initWeb3Modal();
+/* initialise Web3Modal **immediately** */
+initWeb3Modal();
+
+/* show app after user accepts banner */
+document.getElementById("proceedBtn").onclick = () =>{
+  document.getElementById("betaBanner").style.display="none";
+  document.getElementById("app").style.display="block";
 };
 
-/* ▸ Initialize Web3Modal v3 ▸ */
-function initWeb3Modal() {
+/* Web3Modal setup */
+function initWeb3Modal(){
   web3modal = window.Web3ModalStandalone.init({
-    projectId: "9dreachtoken",                 // any string; not enforced for v3 standalone
-    chains: [{ id: 1, name: "Ethereum", rpcUrl: "https://rpc.ankr.com/eth" }],
-    walletConnectVersion: 2,
-    themeVariables: { "--w3m-accent-color": "#4caf50" }
+    projectId:"9dreachtoken",
+    chains:[{id:1,name:"Ethereum",rpcUrl:"https://rpc.ankr.com/eth"}],
+    walletConnectVersion:2,
+    themeVariables:{"--w3m-accent-color":"#4caf50"}
   });
 
   document.getElementById("connectBtn").onclick   = connectWallet;
   document.getElementById("disconnectBtn").onclick= disconnectWallet;
   document.getElementById("buyBtn").onclick       = buyTokens;
   document.getElementById("addBtn").onclick       = addTokenToWallet;
-  document.getElementById("tokenAmount")
-          .addEventListener("input", updateEstimate);
+  document.getElementById("tokenAmount").addEventListener("input",updateEstimate);
 }
 
-/* ▸ Connect wallet (with Etherscan-style modal) ▸ */
-async function connectWallet() {
-  try {
-    const instance = await web3modal.connect();          // pops the wallet selector
+/* connect / disconnect */
+async function connectWallet(){
+  try{
+    const instance = await web3modal.connect();
     ethersProvider = new ethers.providers.Web3Provider(instance);
     signer         = ethersProvider.getSigner();
     walletAddress  = await signer.getAddress();
-
-    document.getElementById("walletStatus").textContent = `Connected: ${walletAddress}`;
-    document.getElementById("connectBtn").style.display = "none";
-    document.getElementById("disconnectBtn").style.display = "inline-block";
-  } catch (err) {
-    console.error("Connection error:", err);
-  }
+    document.getElementById("walletStatus").textContent=`Connected: ${walletAddress}`;
+    document.getElementById("connectBtn").style.display="none";
+    document.getElementById("disconnectBtn").style.display="inline-block";
+  }catch(e){console.error("connect error",e);}
 }
-
-function disconnectWallet() {
+function disconnectWallet(){
   web3modal.disconnect();
-  ethersProvider = signer = walletAddress = null;
-  document.getElementById("walletStatus").textContent = "Wallet not connected";
-  document.getElementById("connectBtn").style.display = "inline-block";
-  document.getElementById("disconnectBtn").style.display = "none";
+  ethersProvider=signer=walletAddress=null;
+  document.getElementById("walletStatus").textContent="Wallet not connected";
+  document.getElementById("connectBtn").style.display="inline-block";
+  document.getElementById("disconnectBtn").style.display="none";
 }
 
-/* ▸ Live ETH price ▸ */
-async function getEthPriceUsd() {
-  const feedAbi = [{"inputs":[],"name":"latestRoundData","outputs":[
-    {"name":"roundId","type":"uint80"},
-    {"name":"answer","type":"int256"},
-    {"name":"startedAt","type":"uint256"},
-    {"name":"updatedAt","type":"uint256"},
-    {"name":"answeredInRound","type":"uint80"}],
-    "stateMutability":"view","type":"function"}];
-
-  const feed = new ethers.Contract(CHAINLINK_FEED, feedAbi, ethersProvider);
-  const data = await feed.latestRoundData();
-  return Number(data.answer) / 1e8;
+/* Chainlink price */
+async function getEthPriceUsd(){
+  const abi=[{"inputs":[],"name":"latestRoundData","outputs":[{"type":"uint80"},{"type":"int256"},{"type":"uint256"},{"type":"uint256"},{"type":"uint80"}],"stateMutability":"view","type":"function"}];
+  const feed=new ethers.Contract(CHAINLINK_FEED,abi,ethersProvider??ethers.getDefaultProvider());
+  const data=await feed.latestRoundData();
+  return Number(data.answer)/1e8;
 }
 
-/* ▸ Estimate line ▸ */
-async function updateEstimate() {
-  const tokens = parseInt(document.getElementById("tokenAmount").value);
-  if (!tokens || tokens <= 0 || !Number.isInteger(tokens)) {
-    document.getElementById("estimate").textContent = "Enter whole number of tokens";
-    return;
-  }
-  try {
-    const ethPrice = await getEthPriceUsd();
-    const ethNeeded = (tokens * USD_PER_TOKEN) / ethPrice;
-    document.getElementById("estimate").textContent =
-      `≈ ${ethNeeded.toFixed(6)} ETH ($${(tokens*USD_PER_TOKEN).toFixed(2)})`;
-  } catch {
-    document.getElementById("estimate").textContent = "Unable to fetch ETH price";
-  }
+/* live estimate */
+async function updateEstimate(){
+  const tokens=parseInt(document.getElementById("tokenAmount").value);
+  if(!tokens||tokens<=0||!Number.isInteger(tokens)){
+    document.getElementById("estimate").textContent="Enter whole number of tokens";return;}
+  try{
+    const ethPrice=await getEthPriceUsd();
+    const ethNeeded=(tokens*USD_PER_TOKEN)/ethPrice;
+    document.getElementById("estimate").textContent=`≈ ${ethNeeded.toFixed(6)} ETH ($${(tokens*USD_PER_TOKEN).toFixed(2)})`;
+  }catch{document.getElementById("estimate").textContent="Unable to fetch ETH price";}
 }
 
-/* ▸ Buy Tokens ▸ */
-async function buyTokens() {
-  if (!signer)   return alert("Connect wallet first.");
-  if (isBuying)  return alert("Transaction pending. Please wait…");
-  isBuying = true;
-
-  const tokens = parseInt(document.getElementById("tokenAmount").value);
-  if (!tokens || tokens<=0 || !Number.isInteger(tokens)) {
-    isBuying=false; return alert("Enter a valid whole token amount.");
-  }
-
-  try {
-    const ethPrice   = await getEthPriceUsd();
-    const ethNeeded  = (tokens*USD_PER_TOKEN)/ethPrice;
-    const ethValue   = ethers.utils.parseEther(ethNeeded.toFixed(6));
-    const minTokens  = ethers.utils.parseUnits(tokens.toString(), TOKEN_DECIMALS);
-
-    const sellerAbi  = [{
-      "inputs":[{"internalType":"uint256","name":"minTokens","type":"uint256"}],
-      "name":"buyTokens","outputs":[],"stateMutability":"payable","type":"function"}];
-
-    const seller = new ethers.Contract(SELLER_ADDRESS, sellerAbi, signer);
-
-    document.getElementById("txStatus").textContent = "⏳ Confirming in wallet…";
-    const tx = await seller.buyTokens(minTokens, { value: ethValue, gasLimit: 250000 });
-    document.getElementById("txStatus").textContent = "⏳ Waiting for on-chain confirmation…";
+/* buy */
+async function buyTokens(){
+  if(!signer) return alert("Connect wallet first.");
+  if(isBuying) return;
+  const tokens=parseInt(document.getElementById("tokenAmount").value);
+  if(!tokens||tokens<=0||!Number.isInteger(tokens)) return alert("Enter a valid whole token amount.");
+  isBuying=true;
+  try{
+    const ethPrice=await getEthPriceUsd();
+    const ethNeeded=(tokens*USD_PER_TOKEN)/ethPrice;
+    const value   =ethers.utils.parseEther(ethNeeded.toFixed(6));
+    const minTok  =ethers.utils.parseUnits(tokens.toString(),TOKEN_DECIMALS);
+    const abi=[{"inputs":[{"internalType":"uint256","name":"minTokens","type":"uint256"}],"name":"buyTokens","outputs":[],"stateMutability":"payable","type":"function"}];
+    const seller=new ethers.Contract(SELLER_ADDRESS,abi,signer);
+    document.getElementById("txStatus").textContent="⏳ Confirming in wallet…";
+    const tx=await seller.buyTokens(minTok,{value,gasLimit:250000});
+    document.getElementById("txStatus").textContent="⏳ Waiting for on-chain confirmation…";
     await tx.wait();
-    document.getElementById("txStatus").textContent = "✅ Purchase successful!";
-    document.getElementById("tokenAmount").value = "";
+    document.getElementById("txStatus").textContent="✅ Purchase successful!";
+    document.getElementById("tokenAmount").value="";
     updateEstimate();
-  } catch (err) {
-    console.error(err);
-    document.getElementById("txStatus").textContent = `❌ ${err.reason || err.message}`;
+  }catch(e){
+    document.getElementById("txStatus").textContent=`❌ ${e.reason||e.message}`;
   }
-  isBuying = false;
+  isBuying=false;
 }
 
-/* ▸ Add custom token ▸ */
-async function addTokenToWallet() {
-  if (!window.ethereum) return;
-  try {
+/* add token */
+async function addTokenToWallet(){
+  if(!window.ethereum) return;
+  try{
     await window.ethereum.request({
-      method: 'wallet_watchAsset',
-      params: {
-        type: 'ERC20',
-        options: {
-          address: TOKEN_ADDRESS,
-          symbol: TOKEN_SYMBOL,
-          decimals: TOKEN_DECIMALS,
-          image: TOKEN_IMAGE
-        }
-      }
+      method:"wallet_watchAsset",
+      params:{type:"ERC20",options:{address:TOKEN_ADDRESS,symbol:TOKEN_SYMBOL,decimals:TOKEN_DECIMALS,image:TOKEN_IMAGE}}
     });
-  } catch(err){
-    if (err.code !== -32602) console.error("Add token error:", err);
-  }
+  }catch(e){if(e.code!==-32602)console.error("add token",e);}
 }
 </script>
 </body>
