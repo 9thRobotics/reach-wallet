@@ -27,6 +27,7 @@
 <div id="walletStatus" class="status">Wallet not connected</div>
 
 <h2>Buy Reach Tokens</h2>
+<div id="priceInfo" class="status">Loading price information...</div>
 <input  id="tokenAmount" type="number" min="1" step="1" placeholder="Whole Tokens Only" />
 <div   id="estimate" class="status">Enter token amount</div>
 <button id="buyBtn">Buy Now</button>
@@ -39,7 +40,7 @@
 const SELLER_ADDRESS = "0x0557afA4318989702376D50B45547F953B7f9B21";
 const TOKEN_ADDRESS  = "0x41a61cdcf40a074546423bae987b81733f3fbac5";
 const CHAINLINK_FEED = "0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419";   // ETH/USD mainnet
-const USD_PER_TOKEN  = 27;
+const USD_PER_TOKEN  = 27;  // Base price
 const TOKEN_DECIMALS = 18;
 const TOKEN_SYMBOL   = "9D-RC";
 const TOKEN_IMAGE    = "https://reachtoken.io/logo.png";
@@ -67,6 +68,35 @@ document.getElementById("disconnectBtn").onclick= onDisconnect;
 document.getElementById("buyBtn").onclick       = buyTokens;
 document.getElementById("addBtn").onclick       = addTokenToWallet;
 document.getElementById("tokenAmount").addEventListener("input", updateEstimate);
+
+/* ▸ Update price info display */
+async function updatePriceInfo() {
+  try {
+    const tokenPrice = await getCurrentTokenPrice();
+    const ethPrice = await getEthPrice();
+    
+    let infoText = `Current Price: $${tokenPrice.toFixed(2)} per token • ETH: $${ethPrice.toFixed(2)}`;
+    
+    try {
+      const contractInfo = await getContractInfo();
+      if (contractInfo) {
+        const soldFormatted = Number(contractInfo.tokensSold) / 1e18;
+        infoText += ` • ${soldFormatted.toFixed(0)} tokens sold`;
+      }
+    } catch (e) {
+      // Ignore if contract info not available
+    }
+    
+    document.getElementById("priceInfo").textContent = infoText;
+  } catch (e) {
+    document.getElementById("priceInfo").textContent = "Price information unavailable";
+  }
+}
+
+// Update price info periodically
+setInterval(updatePriceInfo, 30000); // Every 30 seconds
+// Initial load when page loads
+window.addEventListener('load', updatePriceInfo);
 
 /* ▸ Connect wallet */
 async function onConnect() {
@@ -103,19 +133,89 @@ async function getEthPrice() {
   return Number(rd.answer)/1e8;
 }
 
-/* ▸ Live estimate */
-async function updateEstimate() {
-  const t = parseInt(document.getElementById("tokenAmount").value);
-  if (!t || t<=0) { document.getElementById("estimate").textContent="Enter whole number of tokens"; return; }
+/* ▸ Enhanced contract interface for bonding curve */
+async function getContractInfo() {
+  const abi = [{
+    inputs: [],
+    name: "getContractInfo",
+    outputs: [
+      {name: "currentPrice", type: "uint256"},
+      {name: "totalTokensSold", type: "uint256"},
+      {name: "ethPrice", type: "uint256"},
+      {name: "contractBalance", type: "uint256"},
+      {name: "buybackReserveAmount", type: "uint256"}
+    ],
+    stateMutability: "view",
+    type: "function"
+  }];
+  
   try {
-    const ethUsd = await getEthPrice();
-    const eth    = (t*USD_PER_TOKEN)/ethUsd;
-    document.getElementById("estimate").textContent =
-      `≈ ${eth.toFixed(6)} ETH ($${(t*USD_PER_TOKEN).toFixed(2)})`;
-  } catch { document.getElementById("estimate").textContent="Price unavailable"; }
+    const contract = new ethers.Contract(SELLER_ADDRESS, abi, provider);
+    const info = await contract.getContractInfo();
+    return {
+      currentPrice: info.currentPrice,
+      tokensSold: info.totalTokensSold,
+      ethPrice: info.ethPrice,
+      contractBalance: info.contractBalance,
+      buybackReserve: info.buybackReserveAmount
+    };
+  } catch (e) {
+    console.warn("Could not get contract info, using fallback:", e);
+    return null;
+  }
 }
 
-/* ▸ Buy button */
+/* ▸ Get dynamic token price */
+async function getCurrentTokenPrice() {
+  try {
+    const contractInfo = await getContractInfo();
+    if (contractInfo) {
+      // Price from contract is in USD with 18 decimals
+      return Number(contractInfo.currentPrice) / 1e18;
+    }
+  } catch (e) {
+    console.warn("Using fallback pricing:", e);
+  }
+  
+  // Fallback to original pricing
+  return USD_PER_TOKEN;
+}
+
+/* ▸ Live estimate with dynamic pricing */
+async function updateEstimate() {
+  const t = parseInt(document.getElementById("tokenAmount").value);
+  if (!t || t<=0) { 
+    document.getElementById("estimate").textContent="Enter whole number of tokens"; 
+    return; 
+  }
+  
+  try {
+    const ethUsd = await getEthPrice();
+    const tokenPriceUSD = await getCurrentTokenPrice();
+    const totalUSD = t * tokenPriceUSD;
+    const eth = totalUSD / ethUsd;
+    
+    // Show both current price and total cost
+    document.getElementById("estimate").textContent =
+      `≈ ${eth.toFixed(6)} ETH ($${totalUSD.toFixed(2)}) • Price: $${tokenPriceUSD.toFixed(2)}/token`;
+      
+    // Show additional info if available
+    try {
+      const contractInfo = await getContractInfo();
+      if (contractInfo) {
+        const soldFormatted = Number(contractInfo.tokensSold) / 1e18;
+        document.getElementById("estimate").textContent += ` • ${soldFormatted.toFixed(0)} sold`;
+      }
+    } catch (e) {
+      // Ignore if contract info not available
+    }
+    
+  } catch { 
+    document.getElementById("estimate").textContent="Price unavailable"; 
+  }
+}
+
+/* ▸ Buy button with enhanced pricing */
 async function buyTokens() {
   if (!signer) return alert("Connect wallet first.");
   if (buying)  return alert("Transaction pending…");
@@ -124,22 +224,24 @@ async function buyTokens() {
 
   buying=true;
   try {
-    const ethUsd   = await getEthPrice();
-    const ethNeeded = ((tok * USD_PER_TOKEN) / ethUsd) * 1.01;  // +1% buffer
+    const ethUsd = await getEthPrice();
+    const tokenPriceUSD = await getCurrentTokenPrice();
+    const totalUSD = tok * tokenPriceUSD;
+    const ethNeeded = (totalUSD / ethUsd) * 1.02;  // +2% buffer for bonding curve price movement
     const ethValue = ethers.utils.parseEther(ethNeeded.toFixed(6));
-    const minTok   = ethers.utils.parseUnits(tok.toString(),TOKEN_DECIMALS);
+    const minTok = ethers.utils.parseUnits(tok.toString(), TOKEN_DECIMALS);
 
     const abi=[{inputs:[{internalType:"uint256",name:"minTokens",type:"uint256"}],
                 name:"buyTokens",outputs:[],stateMutability:"payable",type:"function"}];
     const seller=new ethers.Contract(SELLER_ADDRESS,abi,signer);
 
     document.getElementById("txStatus").textContent="⏳ Confirm in wallet…";
-    const tx=await seller.buyTokens(minTok,{value:ethValue,gasLimit:250000});
+    const tx=await seller.buyTokens(minTok,{value:ethValue,gasLimit:300000}); // Increased gas for bonding curve
     document.getElementById("txStatus").textContent="⏳ Waiting for confirmation…";
     await tx.wait();
-    document.getElementById("txStatus").textContent="✅ Purchase successful!";
+    document.getElementById("txStatus").textContent="✅ Purchase successful! Price may have increased.";
     document.getElementById("tokenAmount").value="";
-    updateEstimate();
+    updateEstimate(); // Refresh estimate to show new price
   } catch (err) {
     const message = err?.error?.message || err?.reason || err?.message || "Transaction failed";
     document.getElementById("txStatus").textContent = `❌ ${message}`;
