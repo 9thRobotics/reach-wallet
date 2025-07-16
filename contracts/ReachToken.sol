@@ -209,10 +209,10 @@ contract ReachToken is IERC20 {
      */
     function calculateETHRequired(uint256 tokenAmount) public view returns (uint256) {
         uint256 tokenPriceUSD = getCurrentTokenPrice(); // USD price per token (18 decimals)
-        uint256 totalUSD = (tokenPriceUSD * tokenAmount) / 1e18; // Total USD needed
+        uint256 totalUSD = (tokenPriceUSD * tokenAmount) / 1e18; // Total USD needed (18 decimals)
         uint256 ethUsdPrice = getLatestETHPrice(); // ETH/USD price (8 decimals)
         
-        // Convert USD to ETH: totalUSD * 1e8 / ethUsdPrice * 1e18 / 1e18
+        // Convert USD to ETH: totalUSD * 1e8 / ethUsdPrice
         return (totalUSD * 1e8) / ethUsdPrice;
     }
     
