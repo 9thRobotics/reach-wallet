@@ -65,10 +65,10 @@ contract ReachToken is IERC20 {
         uint256 voteCount;  // Total votes cast (1 per wallet)
         uint256 endTime;
         bool executed;
-        mapping(address => bool) hasVoted; // Track if wallet has voted
     }
     
     mapping(uint256 => Proposal) public proposals;
+    mapping(uint256 => mapping(address => bool)) public hasVotedOnProposal; // Track if wallet has voted on proposal
     uint256 public proposalCount;
     uint256 public constant VOTING_PERIOD = 7 days;
     
@@ -372,10 +372,10 @@ contract ReachToken is IERC20 {
         
         Proposal storage proposal = proposals[proposalId];
         require(block.timestamp < proposal.endTime, "Voting period ended");
-        require(!proposal.hasVoted[msg.sender], "Already voted");
+        require(!hasVotedOnProposal[proposalId][msg.sender], "Already voted");
         
         // Mark wallet as having voted
-        proposal.hasVoted[msg.sender] = true;
+        hasVotedOnProposal[proposalId][msg.sender] = true;
         
         // Each wallet gets exactly 1 vote, regardless of token balance
         proposal.voteCount += 1;
@@ -391,7 +391,7 @@ contract ReachToken is IERC20 {
      */
     function hasVoted(uint256 proposalId, address voter) external view returns (bool) {
         require(proposalId > 0 && proposalId <= proposalCount, "Invalid proposal ID");
-        return proposals[proposalId].hasVoted[voter];
+        return hasVotedOnProposal[proposalId][voter];
     }
     
     /**

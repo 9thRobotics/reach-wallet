@@ -18,14 +18,16 @@ describe("ReachToken Governance - 1 Vote Per Wallet", function () {
 
     // Deploy ReachToken
     const ReachToken = await ethers.getContractFactory("ReachToken");
-    reachToken = await ReachToken.deploy(mockPriceFeed.address);
+    reachToken = await ReachToken.connect(owner).deploy(mockPriceFeed.address);
     await reachToken.deployed();
 
-    // Give some tokens to voters so they can vote
-    const tokenAmount = ethers.utils.parseEther("100");
-    await reachToken._transfer(reachToken.address, voter1.address, tokenAmount);
-    await reachToken._transfer(reachToken.address, voter2.address, tokenAmount);
-    await reachToken._transfer(reachToken.address, voter3.address, tokenAmount);
+    // Voters can buy tokens to participate in governance
+    const ethToSend = ethers.utils.parseEther("0.1"); // Send 0.1 ETH each
+    const minTokens = ethers.utils.parseEther("1"); // Expect at least 1 token
+    
+    await reachToken.connect(voter1).buyTokens(minTokens, { value: ethToSend });
+    await reachToken.connect(voter2).buyTokens(minTokens, { value: ethToSend });
+    await reachToken.connect(voter3).buyTokens(minTokens, { value: ethToSend });
   });
 
   it("Should have correct initial governance state", async function () {
@@ -58,9 +60,10 @@ describe("ReachToken Governance - 1 Vote Per Wallet", function () {
     // Create a proposal
     await reachToken.connect(owner).createProposal("Test Equal Voting");
 
-    // Give voter1 much more tokens than voter2
-    const largeAmount = ethers.utils.parseEther("10000");
-    await reachToken._transfer(reachToken.address, voter1.address, largeAmount);
+    // Give voter1 more tokens by buying more (this simulates having more tokens)
+    const extraEth = ethers.utils.parseEther("1.0"); // Much more ETH
+    const minTokens = ethers.utils.parseEther("1");
+    await reachToken.connect(voter1).buyTokens(minTokens, { value: extraEth });
 
     // Both voters should get exactly 1 vote regardless of balance
     await expect(
